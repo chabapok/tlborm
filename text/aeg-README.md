@@ -1,5 +1,5 @@
-% Annotated Examples
+% Примеры с аннотацией
 
-This section contains real-world[^*] macros which have been annotated to explain their design and construction.
+Этот раздел содержит макросы из реальной жизни[^*], которые были снабжены примечаниями, в которых описаны их дизайн и конструкция.
 
-[^*]: For the most part.
+[^*]: По большей части.

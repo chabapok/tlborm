@@ -1,6 +1,6 @@
-% AST Coercion
+% AST Преобразования
 
-The Rust parser is not very robust in the face of `tt` substitutions.  Problems can arise when the parser is expecting a particular grammar construct and *instead* finds a lump of substituted `tt` tokens.  Rather than attempt to parse them, it will often just *give up*.  In these cases, it is necessary to employ an AST coercion.
+Парсер Rust не очень силен в подстановках `tt`.  Проблемы могут возникнуть, когда парсер ожидает особенную грамматическую конструкцию, а *вместо этого* находит кучу подставленных `tt`.  Вместо того, чтобы попытаться их распарсить, он очень часто просто *сдается*.  В этих случаях , необходимо применить AST преобразование.
 
 ```rust
 # #![allow(dead_code)]
@@ -17,10 +17,10 @@ macro_rules! as_stmt { ($s:stmt) => {$s} }
 # }
 ```
 
-These coercions are often used with [push-down accumulation] macros in order to get the parser to treat the final `tt` sequence as a particular kind of grammar construct.
+Эти преобразования часто используются с  [push-down accumulation] макросами для того, чтобы парсер обработал последнее выражение `tt`  как особый вид грамматической конструкции.
 
-Note that this specific set of macros is determined by what macros are allowed to expand to, *not* what they are able to capture.  That is, because macros cannot appear in type position[^issue-27245], you cannot have an `as_ty!` macro.
+Помните, что эти специфичные настройки макросов определяются тем, во что макросы могут расширяться, а *не* тем, что они могут захватывать.  Это означает, что из-за того, что макрос не может появится на позиции типа [^issue-27245], вы не можете иметь  `as_ty!` макрос.
 
 [push-down accumulation]: pat-push-down-accumulation.html
 
-[^issue-27245]: See [Issue #27245](https://github.com/rust-lang/rust/issues/27245).
+[^issue-27245]: Смотрее [Issue #27245](https://github.com/rust-lang/rust/issues/27245).
