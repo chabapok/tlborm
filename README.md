@@ -1,13 +1,13 @@
-# The Little Book of Rust Macros
+# Маленькая книжка по макросам в Rust
 
-**Note**: this is a work in progress.
+**Замечание**: работа еще в процессе.
 
-This book is an attempt to distil the Rust community's collective knowledge of Rust macros.  As such, both additions (in the form of pull requests) and requests (in the form of issues) are welcome.
+Целью данной книги является попытка объединения коллективных знаний Rust сообщества.  Таким образом, как дополнения  (в форме pull request), так и запросы (в форме issue) приветствуются.
 
-If you wish to contribute, see [the GitHub repository](https://github.com/DanielKeep/tlborm/).
+Если хочешь помочь, смотри [the GitHub repository](https://github.com/DanielKeep/tlborm/).
 
-## Wanted
+## Требуется
 
-* A nicer CSS theme.
-* Parsing/expansion techniques and patterns.
-* Useful building blocks.
+* Сделать получше CSS тему.
+* Техники парсинга/ расширения и паттерны.
+* Полезные блоки кода.
