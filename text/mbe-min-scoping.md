@@ -1,126 +1,126 @@
-% Scoping
+% Области видимости
 
-The way in which macros are scoped can be somewhat unintuitive.  Firstly, unlike everything else in the languages, macros will remain visible in sub-modules.
+Способ, которым макросам задается область видимости, интуитивно понятен.  Для начала, не так, как везде в других местах языка, макросы остаются видимыми для суб-модулей.
 
 ```rust
 macro_rules! X { () => {}; }
 mod a {
-    X!(); // defined
+    X!(); // определен
 }
 mod b {
-    X!(); // defined
+    X!(); // определен
 }
 mod c {
-    X!(); // defined
+    X!(); // определен
 }
 # fn main() {}
 ```
 
-> **Note**: In these examples, remember that all of them have the *same behaviour* when the module contents are in separate files.
+> **Внимание**: Для данных примеров, помните, что все они *ведут себя одинаково*, даже если модули располагаются в разных файлах.
 
-Secondly, *also* unlike everything else in the language, macros are only accessible *after* their definition.  Also note that this example demonstrates how macros do not "leak" out of their defining scope:
+Дальше, *также* будучи непохожим на все остальное в языке, макросы доступны *только* после их определения. Обратите внимание также, этот пример демонстрирует, что макросы не  "выплывают" из своей области видимости:
 
 ```rust
 mod a {
-    // X!(); // undefined
+    // X!(); // неопределен
 }
 mod b {
-    // X!(); // undefined
+    // X!(); // неопределен
     macro_rules! X { () => {}; }
-    X!(); // defined
+    X!(); // определен
 }
 mod c {
-    // X!(); // undefined
+    // X!(); // неопределен
 }
 # fn main() {}
 ```
 
-To be clear, this lexical order dependency applies even if you move the macro to an outer scope:
+Если быть честным, эта зависимость от лексического порядка также проявляется, если вынести макрос во вне:
 
 ```rust
 mod a {
-    // X!(); // undefined
+    // X!(); // неопределен
 }
 macro_rules! X { () => {}; }
 mod b {
-    X!(); // defined
+    X!(); // определен
 }
 mod c {
-    X!(); // defined
+    X!(); // определен
 }
 # fn main() {}
 ```
 
-However, this dependency *does not* apply to macros themselves:
+Однако, эта зависимость *не* проявляется внутри самих макросов:
 
 ```rust
 mod a {
-    // X!(); // undefined
+    // X!(); // неопределен
 }
 macro_rules! X { () => { Y!(); }; }
 mod b {
-    // X!(); // defined, but Y! is undefined
+    // X!(); // определен, но Y! - неопределен
 }
 macro_rules! Y { () => {}; }
 mod c {
-    X!(); // defined, and so is Y!
+    X!(); // определен, как и Y!
 }
 # fn main() {}
 ```
 
-Macros can be exported from a module using the `#[macro_use]` attribute.
+Макросы могут быть экспортированы из модуля через атрибут `#[macro_use]` .
 
 ```rust
 mod a {
-    // X!(); // undefined
+    // X!(); // неопределен
 }
 #[macro_use]
 mod b {
     macro_rules! X { () => {}; }
-    X!(); // defined
+    X!(); // определен
 }
 mod c {
-    X!(); // defined
+    X!(); // определен
 }
 # fn main() {}
 ```
 
-Note that this can interact in somewhat bizarre ways due to the fact that identifiers in a macro (including other macros) are only resolved upon expansion:
+Помните, что это может влиять в некоторой степени причудливым образом на тот факт, что идентификаторы в макросе (включая и другие макросы внутри) разрешаются только после развертывания:
 
 ```rust
 mod a {
-    // X!(); // undefined
+    // X!(); // неопределен
 }
 #[macro_use]
 mod b {
     macro_rules! X { () => { Y!(); }; }
-    // X!(); // defined, but Y! is undefined
+    // X!(); // определен, но Y! - неопределен
 }
 macro_rules! Y { () => {}; }
 mod c {
-    X!(); // defined, and so is Y!
+    X!(); // определен, как и Y!
 }
 # fn main() {}
 ```
 
-Another complication is that `#[macro_use]` applied to an `extern crate` *does not* behave this way: such declarations are effectively *hoisted* to the top of the module.  Thus, assuming `X!` is defined in an external crate called `mac`, the following holds:
+Еще одной сложностью является то, что  `#[macro_use]`, применяемый к  `внешним контейнерам` *не* ведет себя таким образом: такие объявления фактически *поднимаются* наверх в модуле.  Поэтому, считая, что `X!` определен во внешнем контейнере `mac`:
 
 ```ignore
 mod a {
-    // X!(); // defined, but Y! is undefined
+    // X!(); // определен,но Y! - неопределен
 }
 macro_rules! Y { () => {}; }
 mod b {
-    X!(); // defined, and so is Y!
+    X!(); // определен, как и Y!
 }
 #[macro_use] extern crate macs;
 mod c {
-    X!(); // defined, and so is Y!
+    X!(); // определен, как и Y!
 }
 # fn main() {}
 ```
 
-Finally, note that these scoping behaviours apply to *functions* as well, with the exception of `#[macro_use]` (which isn't applicable):
+Наконец, помните, что поведение внутри областей видимости определяется также как для *функций*, за исключением  `#[macro_use]` (для которого определяется по-другому):
 
 ```rust
 macro_rules! X {
@@ -149,4 +149,4 @@ fn b() {
 # }
 ```
 
-These scoping rules are why a common piece of advice is to place all macros which should be accessible "crate wide" at the very top of your root module, before any other modules.  This ensures they are available *consistently*.
+Учитывая эти правила для областей видимости, общим советом будет, ставить все макросы наверх в вашем корневом модуле, перед всеми остальными. Это гарантирует, что они будут доступны *постоянно*.
