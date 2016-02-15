@@ -1,3 +1,3 @@
-% Syntax Extensions
+% Расширение синтаксиса
 
-Before talking about *macros*, it is worthwhile to discuss the general mechanism they are built on: *syntax extensions*.  To do *that*, we must discuss how Rust source is processed by the compiler, and the general mechanisms on which user-defined macros are built.
+Перед тем, как разговаривать о  *макросах*, необходимо обсудить общий механизм, на котором они построены: *расширение синтаксиса*  Чтобы сделать *это*, мы должны обсудить, как компилятор обрабатывает исходный код Rust и общие принципы, по которым строятся макросы, определяемые пользователем.
