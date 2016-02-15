@@ -1,4 +1,4 @@
-% Callbacks
+% Обратный вызов
 
 ```rust
 macro_rules! call_with_larch {
@@ -24,9 +24,9 @@ fn main() {
 }
 ```
 
-Due to the order that macros are expanded in, it is (as of Rust 1.2) impossible to pass information to a macro from the expansion of *another* macro.  This can make modularising macros very difficult.
+Следуя порядку, по которому макросы разворачиваются, невозможно (по крайне мере для Rust 1.2) передать информацию макросу из развертывания *другого* макроса. Это могло бы сделать модуляризацию макросов очень сложной.
 
-An alternative is to use recursion and pass a callback.  Here is a trace of the above example to demonstrate how this takes place:
+Альтренативой является использование рекурсии и передача обратного вызова. Вот как будет выглядеть пример в таком случае:
 
 ```ignore
 recognise_tree! { expand_to_larch ! (  ) }
@@ -39,7 +39,7 @@ println! { "#1, the Larch." }
 // ...
 ```
 
-Using a `tt` repetition, one can also forward arbitrary arguments to a callback.
+Используя повторяющиеся `tt`, можно также пересылать произвольные аргументы обратному вызову.
 
 ```rust
 macro_rules! callback {
@@ -53,4 +53,4 @@ fn main() {
 }
 ```
 
-You can, of course, insert additional tokens in the arguments as needed.
+Вы можете, конечно, вставлять дополнительные токены в аргументы, если вам надо.
