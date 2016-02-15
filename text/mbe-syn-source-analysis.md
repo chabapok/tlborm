@@ -1,23 +1,23 @@
-% Source Analysis
+% Анализ исходного кода
 
-The first stage of compilation for a Rust program is tokenisation.  This is where the source text is transformed into a sequence of tokens (*i.e.* indivisible lexical units; the programming language equivalent of "words").  Rust has various kinds of tokens, such as:
+Первым этапом компиляции для программ на Rust является токенизация. На этом этапе исходный текст преобразуется в набор токенов (*т.е.* неразделимых лексических блоков; эквиваленты "словам" на программном языке). Rust поддерживает различные типы токенов. Среди них, такие как:
 
-* Identifiers: `foo`, `Bambous`, `self`, `we_can_dance`, `LaCaravane`, …
-* Integers: `42`, `72u32`, `0_______0`, …
-* Keywords: `_`, `fn`, `self`, `match`, `yield`, `macro`, …
-* Lifetimes: `'a`, `'b`, `'a_rare_long_lifetime_name`, …
-* Strings: `""`, `"Leicester"`, `r##"venezuelan beaver"##`, …
-* Symbols: `[`, `:`, `::`, `->`, `@`, `<-`, …
+* Идентификаторы: `foo`, `Bambous`, `self`, `we_can_dance`, `LaCaravane`, …
+* Целые числа: `42`, `72u32`, `0_______0`, …
+* Ключевые слова: `_`, `fn`, `self`, `match`, `yield`, `macro`, …
+* Время жизни: `'a`, `'b`, `'a_rare_long_lifetime_name`, …
+* Строки: `""`, `"Leicester"`, `r##"venezuelan beaver"##`, …
+* Символы: `[`, `:`, `::`, `->`, `@`, `<-`, …
 
-…among others.  There are some things to note about the above: first, `self` is both an identifier *and* a keyword.  In almost all cases, `self` is a keyword, but it *is* possible for it to be *treated* as an identifier, which will come up later (along with much cursing).  Secondly, the list of keywords includes some suspicious entries such as `yield` and `macro` that aren't *actually* in the language, but *are* parsed by the compiler—these are reserved for future use.  Third, the list of symbols *also* includes entries that aren't used by the language.  In the case of `<-`, it is vestigial: it was removed from the grammar, but not from the lexer.  As a final point, note that `::` is a distinct token; it is not simply two adjacent `:` tokens.  The same is true of all multi-character symbol tokens in Rust, as of Rust 1.2. [^wither-at]
+Необходимо выделить из приведенного списка следующее: первое, `self` является как идентификатором, *так и* ключевым словом. Почти во всех случаях `self` - это ключевое слово, но оно может также *трактоваться* как идентификатор, который придет позже (вместе с проклятьями). Во-вторых, в список ключевых слов входят разные подозрительные фразы, такие как `yield` и `macro`, которые *на самом деле* не входят в язык, но парсятся компилятором - они зарезервированы на будущее. Третье, в список символов *также* входят элементы, которые не используются языком. Если взять `<-`, то это рудимент: он был удален из грамматики, но не из словаря. Наконец, помните, что `::` - это выдающийся токен; это не просто два токена `:`.  То же самое справедливо для всех составных символьных токенов в Rust, начиная с Rust 1.2. [^цветы_завяли]
 
-[^wither-at]: `@` has a purpose, though most people seem to forget about it completely: it is used in patterns to bind a non-terminal part of the pattern to a name.  Even a member of the Rust core team, proof-reading this chapter, who *specifically* brought up this section, didn't remember that `@` has a purpose.  Poor, poor swirly.
+[^цветы_завяли]: у `@` есть назначение, о котором большинство людей забывают: он используется в паттернах для того, чтобы связвать нетерминальную часть патерна с именем. Даже член команды ядра Rust - тот, кто разрабатывал *конкретно* эту главу, читая ее перед одобрением, не вспомнил, что у  `@`  есть это назначение. Позор, какой позор.
 
-As a point of comparison, it is at *this* stage that some languages have their macro layer, though Rust does *not*.  For example, C/C++ macros are *effectively* processed at this point.[^lies-damn-lies-cpp]  This is why the following code works:[^cpp-it-seemed-like-a-good-idea-at-the-time]
+Сравнивая с другими языками, на этом этапе у некоторых из них есть макро уровень, а у Rust *нет*. Например, макросы C/C++  *эффективно* выполняются на этом этапе.[^лживый-чертовски-лживый-cpp]  Вот почему работает следующий код:[^в-cpp-это-казалось-прекрасной-идей-в-то-время]
 
-[^lies-damn-lies-cpp]: In fact, the C preprocessor uses a different lexical structure to C itself, but the distinction is *broadly* irrelevant.
+[^лживый-чертовски-лживый-cpp]: На самом деле, препроцессор C использует другие лексические структуры по отношению к самому C, хотя различия *очень* незначительны.
 
-[^cpp-it-seemed-like-a-good-idea-at-the-time]: *Whether* it should work is an entirely *different* question.
+[^в-cpp-это-казалось-прекрасной-идей-в-то-время]: *Будет* ли это работать - это совершенно *другой* вопрос.
 
 ```c
 #define SUB void
@@ -29,7 +29,7 @@ SUB main() BEGIN
 END
 ```
 
-The next stage is parsing, where the stream of tokens is turned into an Abstract Syntax Tree (AST).  This involves building up the syntactic structure of the program in memory.  For example, the token sequence `1 + 2` is transformed into the equivalent of:
+Следующий этап - парсинг, где поток токенов превращается в Абстрактное Синтаксическое Дерево (AST). Здесь строится синтаксическая структура программы в памяти. Например, сочетание токенов `1 + 2` преобразуется соответственно в:
 
 ```text
 ┌─────────┐   ┌─────────┐
@@ -42,21 +42,21 @@ The next stage is parsing, where the stream of tokens is turned into an Abstract
               └─────────┘
 ```
 
-The AST contains the structure of the *entire* program, though it is based on purely *lexical* information.  For example, although the compiler may know that a particular expression is referring to a variable called "`a`", at this stage, it has *no way* of knowing what "`a`" is, or even *where* it comes from.
+AST содержит структуру *всей* программы, хотя основывается она исключительно *на лексической* информации. Например, компилятор может знать, что часть выражения относится к переменной "`a`" на этом этапе, хотя он понятия не имеет, что такое "`a`", или *откуда* ее взять.
 
-It is *after* the AST has been constructed that macros are processed.  However, before we can discuss that, we have to talk about token trees.
+*После* того, как было сконструировано AST, обрабатываются макросы. Однако, прежде чем мы это обсудим, мы должны поговорить о деревьях токенов.
 
-## Token trees
+## Деревья токенов
 
-Token trees are somewhere between tokens and the AST.  Firstly, *almost* all tokens are also token trees; more specifically, they are *leaves*.  There is one other kind of thing that can be a token tree leaf, but we will come back to that later.
+Деревья токенов - это нечто среднее между токенами и AST. Для начала, *почти* все токены являются деревьями токенов; если более конкретно, они являются *листьями*. Есть еще одна вещь, которая тоже может быть листом дерева, но о ней дальше.
 
-The only basic tokens that are *not* leaves are the "grouping" tokens: `(...)`, `[...]`, and `{...}`.  These three are the *interior nodes* of token trees, and what give them their structure.  To give a concrete example, this sequence of tokens:
+Единственные базовые токены, которые *не* являются листьями, это токены "группировки": `(...)`, `[...]` и `{...}`.  Эти три - *внутренние узлы* деревьев токенов, или то, что и конструирует структуру дерева. Для конкретного примера, эта связка токенов:
 
 ```ignore
 a + b + (c + d[0]) + e
 ```
 
-would be parsed into the following token trees:
+будет распарсена в следующие деревья токенов:
 
 ```text
 «a» «+» «b» «+» «(   )» «+» «e»
@@ -66,7 +66,7 @@ would be parsed into the following token trees:
                          «0»
 ```
 
-Note that this has *no relationship* to the AST the expression would produce; instead of a single root node, there are *nine* token trees at the root level.  For reference, the AST would be:
+Помните, что это не имеет *никакого отношения* к выражениям, производимым AST; вместо одного корневого узла, здесь *девять* деревьев токенов на корневом уровне. Для справки, AST будет следующим:
 
 ```text
               ┌─────────┐
@@ -94,6 +94,6 @@ Note that this has *no relationship* to the AST the expression would produce; in
                             └─────────┘                 └─────────┘
 ```
 
-It is important to understand the distinction between the AST and token trees.  When writing macros, you have to deal with *both* as distinct things.
+Важно понимать различие между AST и деревьями токенов. При написании макросов вам придется иметь дело с *обеими вещами* по отдельности.
 
-One other aspect of this to note: it is *impossible* to have an unpaired paren, bracket or brace; nor is it possible to have incorrectly nested groups in a token tree.
+Другой важный аспект: *нельзя* указать *непарную* обычную, фигурную или квадратную скобку; также невозможно указать неправильно вложенные группы в дереве токенов.
