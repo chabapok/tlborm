@@ -1,30 +1,30 @@
-% Expansion
+% Развертывание
 
-Expansion is a relatively simple affair.  At some point *after* the construction of the AST, but before the compiler begins constructing its semantic understanding of the program, it will expand all macros.
+Развертывание - это относительно несложна штука. В какой-то момент *после* создания AST, но перед тем, как начать создавать семантическое представление программы, компилятор развернет все макросы.
 
-This involves traversing the AST, locating macro invocations and replacing them with their expansion.  In the case of non-macro syntax extensions, *how* this happens is up to the particular syntax extension.  That said, syntax extensions go through *exactly* the same process that macros do once their expansion is complete.
+Этот процесс включает в себя проход AST, определение мест вызовов макросов и замены их на развертывание.  В случае расширений синтаксиса, не связанных с макросами, то,*как* компилятор их разворачивает, завсисит от самих синтаксических расширений. Таким образом, расширения синтаксиса проходят через  *точно такой же* процесс развертывания, как и макросы.
 
-Once the compiler has run a syntax extension, it expects the result to be parseable as one of a limited set of syntax elements, based on context.  For example, if you invoke a macro at module scope, the compiler will parse the result into an AST node that represents an item.  If you invoke a macro in expression position, the compiler will parse the result into an expression AST node.
+Когда компилятор запускает расширение синтаксиса, он ожидает, что результат можно будет распарсить в синтаксический элемент из известного ему списка, основываясь на контексте.  Например, если вы вызываете макрос в границах видимости модуля, компилятор распарсит результат в узел AST, представляющий элемент.  Если вызвать макрос на позиции выражения, компилятор распарсит результат в узел AST, представляющий выражение.
 
-In fact, it can turn a syntax extension result into any of the following:
+На самом деле, он может распарсить результат расширения синтаксиса в одно из следующих:
 
-* an expression,
-* a pattern,
-* zero or more items,
-* zero or more `impl` items, or
-* zero or more statements.
+* выражение,
+* паттерн,
+* ноль или больше элементов,
+* ноль или больше элементов `impl` , или
+* ноль или больше утверждений.
 
-In other words, *where* you can invoke a macro determines what its result will be interpreted as.
+Другими словами, то, *где* вы можете вызвать макрос, определятся результатом, в который он разворачивается.
 
-The compiler will take this AST node and completely replace the macro's invocation node with the output node.  *This is a structural operation*, not a textural one!
+Компилятор берет узел AST и полностью заменяет узел вызова макроса, на то, во что он разворачивается.  *Это структурная операция*, а не текстовая!
 
-For example, consider the following:
+Например у нас есть следующее:
 
 ```ignore
 let eight = 2 * four!();
 ```
 
-We can visualise this partial AST as follows:
+Мы можем изобразить часть AST таким образом:
 
 ```text
 ┌─────────────┐
@@ -40,7 +40,7 @@ We can visualise this partial AST as follows:
                                 └────────────┘
 ```
 
-From context, `four!()` *must* expand to an expression (the initialiser can *only* be an expression).  Thus, whatever the actual expansion is, it will be interpreted as a complete expression.  In this case, we will assume `four!` is defined such that it expands to the expression `1 + 3`.  As a result, expanding this invocation will result in the AST changing to:
+Из контекста, `four!()` *должен* развернуться в выражение (инициализаторы могут быть *только* выражением). Поэтому, чем бы ни было реальное развертывание, оно будет интерпретироваться как законченное выражение. В данном случае мы подразумеваем, что  `four!` определено так, что разворачивается в выражение `1 + 3`.  В результате, после развертывания вызов можно изобразить так:
 
 ```text
 ┌─────────────┐
@@ -59,39 +59,39 @@ From context, `four!()` *must* expand to an expression (the initialiser can *onl
                    └────────┘                 └────────┘
 ```
 
-This can be written out like so:
+Можно также написать это так:
 
 ```ignore
 let eight = 2 * (1 + 3);
 ```
 
-Note that we added parens *despite* them not being in the expansion.  Remember that the compiler always treats the expansion of a macro as a complete AST node, **not** as a mere sequence of tokens.  To put it another way, even if you don't explicitly wrap a complex expression in parentheses, there is no way for the compiler to "misinterpret" the result, or change the order of evaluation.
+Заметьте, что мы добавили скобки, *несмотря на то, что* их не было в развертывании.  Помните, что компилятор всегда трактует развертывание макроса, как законченный узел AST, **не** как простую последовательность токенов. По-другому, даже если вы не обернули сложное выражение в скобки, компилятор все равно "правильно" интерпретирует результат или поменяет порядок оценки.
 
-It is important to understand that macro expansions are treated as AST nodes, as this design has two further implications:
+Важно понимать, что развертывание макроса считается узлами AST. У такого дизайна следующие следствия:
 
-* In addition to there being a limited number of invocation *positions*, macros can *only* expand to the kind of AST node the parser *expects* at that position.
-* As a consequence of the above, macros *absolutely cannot* expand to incomplete or syntactically invalid constructs.
+* В дополнении к тому, что есть ограниченный набор *мест вызовов*, макросы могут разворачиваться *только* в тот тип узла AST, который *ожидает* парсер в этом месте.
+* В завершении вышесказанного - макросы *никогда не* могут развернуться в незаконченное выражение или синтаксически неправильную конструкцию.
 
-There is one further thing to note about expansion: what happens when a syntax extension expands to something that contains *another* syntax extension invocation.  For example, consider an alternative definition of `four!`; what happens if it expands to `1 + three!()`?
+Нужно знать еще одну вещь про развертывание: что происходит, если расширение синтаксиса разворачивается во что-то, содержащее  *другой* вызов расширения синтаксиса. Например, определим другое описание `four!`; что произойдет, если он развернется в `1 + three!()`?
 
 ```ignore
 let x = four!();
 ```
 
-Expands to:
+Разворачивается в:
 
 ```ignore
 let x = 1 + three!();
 ```
 
-This is resolved by the compiler checking the result of expansions for additional macro invocations, and expanding them.  Thus, a second expansion step turns the above into:
+Компилятор ищет в получившемся результате развертывания дополнительные вызовы макросов и разворачивает их.  Поэтому после второго развертывания получится следующее:
 
 ```ignore
 let x = 1 + 3;
 ```
 
-The takeaway here is that expansion happens in "passes"; as many as is needed to completely expand all invocations.
+Вынести из этого можно следующее - развертывание осуществляется "проходами"; столько, сколько нужно, чтобы полностью развернуть все вызовы.
 
-Well, not *quite*.  In fact, the compiler imposes an upper limit on the number of such recursive passes it is willing to run before giving up.  This is known as the macro recursion limit and defaults to 32.  If the 32nd expansion contains a macro invocation, the compiler will abort with an error indicating that the recursion limit was exceeded.
+Хотя, *немного не так*.  На самом деле компилятор лимитирует количество таких рекурсивных проходов, которые он выполнит перед тем, как сдасться. Это называется лимит рекурсии макросов и, по умолчанию, равен 32.  Если 32 развертывание содержит вызов макроса, компилятор прервет свою работу с ошибкой, сообщающей, что лимит рекурсии исчерпан.
 
-This limit can be raised using the `#![recursion_limit="…"]` attribute, though it *must* be done crate-wide.  Generally, it is recommended to try and keep macros below this limit wherever possible.
+Этот лимит можно увеличить через атрибут `#![recursion_limit="…"]`, однако это *необходимо* делать по всему контейнеру. Обычно, рекомендуется пробовать и пытаться удерживать макросы внутри этого лимита, где это только возможно.
