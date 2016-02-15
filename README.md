@@ -4,7 +4,7 @@
 
 Целью данной книги является попытка объединить коллективные знаний Rust сообщества.  Таким образом, как дополнения  (в форме pull request), так и запросы (в форме issue) приветствуются.
 
-Если хотите помочь - [the GitHub repository](https://github.com/DanielKeep/tlborm/).
+Если хотите помочь - [репозиторий на GitHub](https://github.com/DanielKeep/tlborm/).
 
 ## Требуется
 
