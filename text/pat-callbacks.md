@@ -1,4 +1,4 @@
-% Обратный вызов
+% Обратные вызовы
 
 ```rust
 macro_rules! call_with_larch {
