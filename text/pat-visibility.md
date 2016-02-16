@@ -1,10 +1,10 @@
-% Visibility
+% Видимость
 
-Matching and substituting visibility can be tricky in Rust, due to the absence of any kind of `vis` matcher.
+Сопоставление и замена видимости может быть достаточна хитра в Rust, из-за отсутствия типа `vis` в сопоставлении.
 
-## Matching and Ignoring
+## Сопоставление и игнорирование
 
-Depending on context, this can be done using a repetition:
+В зависимости от контекста, это можно сделать повторениями:
 
 ```rust
 macro_rules! struct_name {
@@ -16,11 +16,11 @@ macro_rules! struct_name {
 # }
 ```
 
-The above example will match `struct` items that are private or public.  Or `pub pub` (very public), or even `pub pub pub pub` (really very quite public).  The best defense against this is to simply hope that people using the macro are not excessively silly.
+Пример сопоставит элементы `struct`, которые и приватны и публичны.  Или `pub pub` (очень публичны), или даже `pub pub pub pub` (очень очень публичны). Лучшей защитой от этого является надежда. Надежда на то, что люди не будут использовать его так глупо.
 
-## Matching and Substituting
+## Сопоставление и замена
 
-Because you cannot bind a repetition in and of itself to a variable, there is no way to store the contents of `$(pub)*` such that it can be substituted.  As a result, multiple rules are needed.
+Из-за того, что нельзя связать повторение само по себе с переменной, нет и возможности захватить `$(pub)*` так, чтоб его можно было заменить. В результате нужно несколько правил.
 
 ```rust
 macro_rules! newtype_new {
@@ -50,8 +50,8 @@ macro_rules! as_item { ($i:item) => {$i} }
 # }
 ```
 
-> **See also**: [AST Coercion].
+> **Смотри также**: [AST Преобразования].
 
-In this case, we are using the ability to match an arbitrary sequence of tokens inside a group to match either `()` or `(pub)`, then substitute the contents into the output.  Because the parser will not expect a `tt` repetition expansion in this position, we need to use [AST coercion] to get the expansion to parse correctly.
+В этом случае мы используем возможности сопоставления произвольной последовательности токенов внутри группы с `()` или `(pub)`, затем заменяем содержимое на выходе. Из-за того, что парсер не ожидает на этой позиции развертывания повторения `tt`, нам придется использовать [AST преобразования], чтобы развертывание правильно распарсилось.
 
-[AST Coercion]: blk-ast-coercion.html
+[AST Преобразования]: blk-ast-coercion.html
