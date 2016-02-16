@@ -1,4 +1,4 @@
-% Push-down Accumulation
+% Спихиваемые накопления
 
 ```rust
 macro_rules! init_array {
@@ -23,9 +23,9 @@ let strings: [String; 3] = init_array![String::from("hi!"); 3];
 # assert_eq!(format!("{:?}", strings), "[\"hi!\", \"hi!\", \"hi!\"]");
 ```
 
-All macros in Rust **must** result in a complete, supported syntax element (such as an expression, item, *etc.*).  This means that it is impossible to have a macro expand to a partial construct.
+Все макросы в  Rust **должны** в результате разворачиваться в законченный, подходящий по синтаксису элемент (такой как выражение, элемент, *и т.д.*). Это означает, что нельзя сделать макрос, разворачивающийся в частичную конструкцию.
 
-One might hope that the above example could be more directly expressed like so:
+Можно надеятся, что приведенный выше пример выразится так:
 
 ```ignore
 macro_rules! init_array {
@@ -42,7 +42,7 @@ macro_rules! init_array {
 }
 ```
 
-The expectation is that the expansion of the array literal would proceed as follows:
+Ожидаем, что развертывание литералов из массива выполнится следующим образом:
 
 ```ignore
             [init_array!(@accum 3, e)]
@@ -51,9 +51,9 @@ The expectation is that the expansion of the array literal would proceed as foll
             [e, e, e]
 ```
 
-However, this would require each intermediate step to expand to an incomplete expression.  Even though the intermediate results will never be used *outside* of a macro context, it is still forbidden.
+Однако, для это потребуется, чтобы каждый промежуточный шаг разворачивался в незаконченное выражение. Даже при том, что промежуточные результаты никогда не будут использоватся *снаружи* контекста макроса, это все равно запрещено.
 
-Push-down, however, allows us to incrementally build up a sequence of tokens without needing to actually have a complete construct at any point prior to completion.  In the example given at the top, the sequence of macro invocations proceeds as follows:
+Спихивание, однако, позволяет нам последовательно строить связку токенов, без необходимости иметь законченную структуру на каждом шаге до окончания. В примере на самом верху, связка вызовов макроса выполнится так:
 
 ```ignore
 init_array! { String:: from ( "hi!" ) ; 3 }
@@ -64,8 +64,8 @@ init_array! { @ accum ( 0 , e.clone() ) -> ( e.clone() , e.clone() , e.clone() ,
 init_array! { @ as_expr [ e.clone() , e.clone() , e.clone() , ] }
 ```
 
-As you can see, each layer adds to the accumulated output until the terminating rule finally emits it as a complete construct.
+Как вы видите, каждый слой добавляет накопление к выходу до тех пор пока последнее правило не выделет все это в законченную структуру.
 
-The only critical part of the above formulation is the use of `$($body:tt)*` to preserve the output without triggering parsing.  The use of `($input) -> ($output)` is simply a convention adopted to help clarify the behaviour of such macros.
+Единственным плохим моментов в приведенной редакции является использование `$($body:tt)*` для того, чотбы сохранить значение на выходе, не запуская его парсинг. `($input) -> ($output)` - это просто соглашение, призванное упростить понимание таких макросов.
 
-Push-down accumulation is frequently used as part of [incremental TT munchers](#incremental-tt-munchers), as it allows arbitrarily complex intermediate results to be constructed.
+Спихиваемые накопления - часто используемая часть [последовательного потребителя TT](#incremental-tt-munchers), так как она позволяет конструировать промежуточные результаты произвольной сложности.
