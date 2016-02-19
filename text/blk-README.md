@@ -1,3 +1,3 @@
-% Building Blocks
+% Строительные блоки
 
-Reusable snippets of macro code.
+Многоразовые сниппеты кода макросов.

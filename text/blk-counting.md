@@ -1,8 +1,8 @@
-% Counting
+% Подсчет
 
-## Repetition with replacement
+## Повторение с заменой 
 
-Counting things in a macro is a surprisingly tricky task.  The simplest way is to use replacement with a repetition match.
+Подсчет чего-либо в макросе - удивительно хитрая задача.  Самое простое решение - использовать замену и повторяющееся сопоставление с образцом.
 
 ```rust
 macro_rules! replace_expr {
@@ -18,17 +18,17 @@ macro_rules! count_tts {
 # }
 ```
 
-This is a fine approach for smallish numbers, but will likely *crash the compiler* with inputs of around 500 or so tokens.  Consider that the output will look something like this:
+Это прекрасно подходит для небольшого количества переменных, но скорее всего  *сломает компилятор*, когда на входе их будет около 500 или больше.  Представьте, что вывод будет выглядеть как-то так:
 
 ```ignore
 0usize + 1usize + /* ~500 `+ 1usize`s */ + 1usize
 ```
 
-The compiler must parse this into an AST, which will produce what is effectively a perfectly unbalanced binary tree 500+ levels deep.
+Компилятор должен распарсить это в AST, который произведет, фактически, абсолютно несбалансированное бинарное дерево с 500+ уровнями глубины.
 
-## Recursion
+## Рекурсия
 
-An older approach is to use recursion.
+Старый подход - использовать рекурсию.
 
 ```rust
 macro_rules! count_tts {
@@ -41,11 +41,11 @@ macro_rules! count_tts {
 # }
 ```
 
-> **Note**: As of `rustc` 1.2, the compiler has *grevious* performance problems when large numbers of integer literals of unknown type must undergo inference.  We are using explicitly `usize`-typed literals here to avoid that.
+> **Заметьте**: По состоянию на `rustc` 1.2, у компилятора появляются  *серьезные* проблемы с производительностью, если большое число целочисленных переменных неизвестного типа должны пройти через выведение.  Мы используем здесь явно переменные типа `usize` для избежания этого.
 >
-> If this is not suitable (such as when the type must be substitutable), you can help matters by using `as` (*e.g.* `0 as $ty`, `1 as $ty`, *etc.*).
+> Если такой вариант не подходит (например, когда тип должен подставляться), вы можете помочь компилятору, используя  `as` (*например* `0 as $ty`, `1 as $ty`, *и т.д.*).
 
-This *works*, but will trivially exceed the recursion limit.  Unlike the repetition approach, you can extend the input size by matching multiple tokens at once.
+Этот подход *работает*, но довольно быстро будет достигнут лимит рекурсии. В отличие от подхода с повторениями, вы можете расширить количество переменных на входе сопоставлением множества токенов за один раз.
 
 ```rust
 macro_rules! count_tts {
@@ -85,7 +85,7 @@ fn main() {
         ,,,,,,,,,, ,,,,,,,,,, ,,,,,,,,,, ,,,,,,,,,, ,,,,,,,,,,
         ,,,,,,,,,, ,,,,,,,,,, ,,,,,,,,,, ,,,,,,,,,, ,,,,,,,,,,
         
-        // Repetition breaks somewhere after this
+        // Повторение ломается где-то после этого места
         ,,,,,,,,,, ,,,,,,,,,, ,,,,,,,,,, ,,,,,,,,,, ,,,,,,,,,,
         ,,,,,,,,,, ,,,,,,,,,, ,,,,,,,,,, ,,,,,,,,,, ,,,,,,,,,,
 
@@ -95,11 +95,11 @@ fn main() {
 }
 ```
 
-This particular formulation will work up to ~1,200 tokens.
+Такая формулировка будет работать вплоть до ~1,200 значений.
 
-## Slice length
+## Длина среза
 
-A third approach is to help the compiler construct a shallow AST that won't lead to a stack overflow.  This can be done by constructing an array literal and calling the `len` method.
+Третий подход к решению проблемы — помочь компилятору сконструировать неглубокий AST, который не приведет к переполнению стека.  Это можно сделать, сконструировав переменную массива и вызвав метод `len`.
 
 ```rust
 macro_rules! replace_expr {
@@ -115,13 +115,13 @@ macro_rules! count_tts {
 # }
 ```
 
-This has been tested to work up to 10,000 tokens, and can probably go much higher.  The *downside* is that as of Rust 1.2, this *cannot* be used to produce a constant expression.  Although the result can be optimised to a simple constant (in debug builds it compiles down to a load from memory), it still cannot be used in constant positions (such as the value of `const`s, or a fixed array's size).
+Этот подход протестирован на коде длиной до 10000 токенов и, возможно, будет работать для гораздо более длинного кода.  *Обратной стороной* является то, что в Rust 1.2 он *не может* быть использован для представления константного выражения.  Хотя результат может быть оптимизирован до простой константы (при сборке в отладочном режиме он компилируется вниз для загрузки из памяти), он все еще не может использоваться в качестве константы (значение `const` или точный размер массива).
 
-However, if a non-constant count is acceptable, this is very much the preferred method.
+Однако, если необходим неконстантный подсчет, это один из самых предпочтительных методов.
 
-## Enum counting
+## Подсчет через Enum
 
-This approach can be used where you need to count a set of mutually distinct identifiers.  Additionally, the result of this approach is usable as a constant.
+Этот подход может использоваться, если вам нужно посчитать набор взаимно различных идентификаторов. Необходимо добавить, что результат этого подхода используется как константа.
 
 ```rust
 macro_rules! count_idents {
@@ -141,6 +141,8 @@ macro_rules! count_idents {
 # }
 ```
 
-This method does have two drawbacks.  First, as implied above, it can *only* count valid identifiers (which are also not keywords), and it does not allow those identifiers to repeat.
+У этого метода есть два недостатка.  
 
-Secondly, this approach is *not* hygienic, meaning that if whatever identifier you use in place of `__CountIdentsLast` is provided as input, the macro will fail due to the duplicate variants in the `enum`.
+Первый, как показано выше, - способность считать только валидные неповторяющиеся идентификаторы.
+
+Второй - этот подход *не совсем* чист, если вместо одного из идентификаторов на входе вы используете  `__CountIdentsLast`, макрос сломается из-за дублирования вариантов в `enum`.

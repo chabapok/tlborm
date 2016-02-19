@@ -1,9 +1,9 @@
-% Debugging
+% Отладка
 
-`rustc` provides a number of tools to debug macros.  One of the most useful is `trace_macros!`, which is a directive to the compiler instructing it to dump every macro invocation prior to expansion.  For example, given the following:
+`rustc` предоставляет набор инструментов для отладки макросов. Один из самых полезных -  `trace_macros!`, который представляет собой директиву компилятору, требующую от него делать дамп каждого вызова макроса до развертывания.  Например, имеем следующее:
 
 ```rust
-# // Note: make sure to use a nightly channel compiler.
+# // Важно: убедитесь, что вы используете  nightly версию компилятора.
 #![feature(trace_macros)]
 
 macro_rules! each_tt {
@@ -20,7 +20,7 @@ each_tt!(trom qlip winp xod);
 # fn main() {}
 ```
 
-The output is:
+Вывод:
 
 ```text
 each_tt! { spim wak plee whum }
@@ -30,12 +30,12 @@ each_tt! { whum }
 each_tt! {  }
 ```
 
-This is *particularly* invaluable when debugging deeply recursive macros.  You can also enable this from the command-line by adding `-Z trace-macros` to the compiler command line.
+Это *особенно* неоценимо при отладке макросов с большой глубиной рекурсии. Вы можете также включить эту директиву из командной строки добавив `-Z trace-macros` к команде.
 
-Secondly, there is `log_syntax!` which causes the compiler to output all tokens passed to it.  For example, this makes the compiler sing a song:
+Во вторых, есть `log_syntax!`, который заставляет компилятор выводить все токены, которые подаются на вход. Например, это заставит компилятор петь песню:
 
 ```rust
-# // Note: make sure to use a nightly channel compiler.
+# // Важно: убедитесь, что вы используете  nightly версию компилятора.
 #![feature(log_syntax)]
 
 macro_rules! sing {
@@ -55,12 +55,12 @@ sing! {
 # fn main() {}
 ```
 
-This can be used to do slightly more targeted debugging than `trace_macros!`.
+Эту команду можно использовать, чтобы сделать более точную отладку, чем  `trace_macros!`.
 
-Sometimes, it is what the macro *expands to* that proves problematic.  For this, the `--pretty` argument to the compiler can be used.  Given the following code:
+Иногда то, во что макрос *разворачивается*, представляет проблему.  Для отладки можно использовать аргумент компилятора `--pretty`.  Ниже пример:
 
 ```ignore
-// Shorthand for initialising a `String`.
+// Короткая инициализация  `String`.
 macro_rules! S {
     ($e:expr) => {String::from($e)};
 }
@@ -71,13 +71,13 @@ fn main() {
 }
 ```
 
-compiled with the following command:
+скомпилировано со следующей командой :
 
 ```shell
 rustc -Z unstable-options --pretty expanded hello.rs
 ```
 
-produces the following output (modified for formatting):
+выдает следующий вывод (исправлен с форматированием):
 
 ```ignore
 #![feature(no_std, prelude_import)]
@@ -104,4 +104,4 @@ fn main() {
 }
 ```
 
-Other options to `--pretty` can be listed using `rustc -Z unstable-options --help -v`; a full list is not provided since, as implied by the name, any such list would be subject to change at any time.
+Другие опции `--pretty` можно посмотреть так - `rustc -Z unstable-options --help -v`; полный список опций не приводится из-за того, что он относится к нестабильным возможностям и может поменяться в любое время.

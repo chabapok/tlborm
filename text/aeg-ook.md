@@ -1,53 +1,53 @@
 % Ook!
 
-This macro is an implementation of the [Ook! esoteric language](http://www.dangermouse.net/esoteric/ook.html), which is isomorphic to the [Brainfuck esoteric language](http://www.muppetlabs.com/~breadbox/bf/).
+Этот макрос представляет собой реализацию [эзотерического языка Ook!](http://www.dangermouse.net/esoteric/ook.html), которая изоморфна [эзотерическому языку Brainfuck](http://www.muppetlabs.com/~breadbox/bf/).
 
-The execution model for the language is very simple: memory is represented as an array of "cells" (typically at least 8-bits) of some indeterminate number (usually at least 30,000).  There is a pointer into memory which starts off at position 0.  Finally, there is an execution stack (used to implement looping) and pointer into the program, although these last two are not exposed to the running program; they are properties of the runtime itself.
+Модель выполнения языка очень проста: память представляет собой массив "ячеек" (обычно, как минимум, 8 бит) переменной длины (обычно, как минимум, 30.000 "ячеек"). В памяти есть указатель, который начинается с 0.  Наконец, есть стек выполнения (используемый для реализации циклов) и указатель на инструкцию (команду) в программе, хотя они относятся к среде выполнения, а не к выполняющейся программе.
 
-The language itself is comprised of just three tokens: `Ook.`, `Ook?`, and `Ook!`.  These are combined in pairs to form the eight different operations:
+Язык состоит всего из трех служебных слов: `Ook.`, `Ook?` и `Ook!`.  Они объединяются в пары, формируя 8 различных операций:
 
-* `Ook. Ook?` - increment pointer.
-* `Ook? Ook.` - decrement pointer.
-* `Ook. Ook.` - increment pointed-to memory cell.
-* `Ook! Ook!` - decrement pointed-to memory cell.
-* `Ook! Ook.` - write pointed-to memory cell to standard output.
-* `Ook. Ook!` - read from standard input into pointed-to memory cell.
-* `Ook! Ook?` - begin a loop.
-* `Ook? Ook!` - jump back to start of loop if pointed-to memory cell is not zero; otherwise, continue.
+* `Ook. Ook?` - инкрементировать указатель.
+* `Ook? Ook.` - декрементировать указатель.
+* `Ook. Ook.` - инкрементировать значение в ячейке памяти по указателю.
+* `Ook! Ook!` - декрементировать значение в ячейке памяти по указателю.
+* `Ook! Ook.` - переписать значение из ячейки памяти по указателю в стандартный output.
+* `Ook. Ook!` - переписать значение из стандартного input в ячейку памяти по указателю.
+* `Ook! Ook?` - начать цикл.
+* `Ook? Ook!` - перейти на начало цикла, если значение в ячейке памяти по указателю не равно 0; иначе, продолжить.
 
-Ook! is interesting because it is known to be Turing-complete, meaning that any environment in which you can implement it must *also* be Turing-complete.
+Ook! интересен тем, что он является тьюринг-полным, что означает, что среда, в которой вы можете реализовать его, должна быть *тоже* тьюринг-полной.
 
-## Implementation
+## Реализация
 
 ```ignore
 #![recursion_limit = "158"]
 ```
 
-This is, in fact, the lowest possible recursion limit for which the example program provided at the end will actually compile.  If you're wondering what could be so fantastically complex that it would *justify* a recursion limit nearly five times the default limit... [take a wild guess](https://en.wikipedia.org/wiki/Hello_world_program).
+Это, на самом деле, минимальный лимит рекурсии, для которого скомпилируется пример программы, приведенный в конце. Если вы хотите узнать, что может быть таким фантастически сложным, что сможет *оправдать* изменение лимита рекурсии в пять раз от дефолтного значения ... [угадайте](https://en.wikipedia.org/wiki/Hello_world_program).
 
 ```ignore
 type CellType = u8;
 const MEM_SIZE: usize = 30_000;
 ```
 
-These are here purely to ensure they are visible to the macro expansion.[^*]
+Это здесь, чтобы убедиться, что они видимы для расширения макроса.[^*]
 
-[^*]: They *could* have been defined within the macro, but then they would have to have been explicitly passed around (due to hygiene).  To be honest, by the time I realised I *needed* to define these, the macro was already mostly written and... well, would *you* want to go through and fix this thing up if you didn't *absolutely need* to?
+[^*]: Эти поля *могли бы* быть определены внутри макроса, но тогда они бы явно передавались в каждом вызове (из-за гигиены макроса).  Честно говоря, к тому моменту как я понял, что мне *нужно* их определить, макрос был уже почти написан и ... ну, а *вам* бы хотелось все переделывать заново без особой на то важной причины?
 
 ```ignore
 macro_rules! Ook {
 ```
 
-The name should *probably* have been `ook!` to match the standard naming convention, but the opportunity was simply too good to pass up.
+Имя *по-хорошему* должно было быть `ook!` по правилам именования, но случай уж был слишком хорош, чтобы пройти мимо них.
 
-The rules for this macro are broken up into sections using the [internal rules](../pat/README.html#internal-rules) pattern.
+Правила для этого макроса разбиты на секции с использованием паттерна [internal rules](../pat/README.html#internal-rules).
 
-The first of these will be a `@start` rule, which takes care of setting up the block in which the rest of our expansion will happen.  There is nothing particularly interesting in this: we define some variables and helper functions, then do the bulk of the expansion.
+Первым будет правило `@start`, обрабатывающее настройки блока, в котором будет происходить остальное развертывание. Здесь нет ничего интересного: мы определяем некоторые переменные и вспомогательные функции, и затем выполняем основную часть разворота.
 
-A few small notes:
+Несколько небольших замечаний:
 
-* We are expanding into a function largely so that we can use `try!` to simplify error handling.
-* The use of underscore-prefixed names is so that the compiler will not complain about unused functions or variables if, for example, the user writes an Ook! program that does no I/O.
+* Мы разворачиваем в функцию, поэтому можем использовать `try!` для упрощения перехвата ошибок.
+* Использование имен с подчеркиванием вначале нужно, чтобы компилятор не ругался на неиспользованные функции и переменные если, например, пользователь пишет Ook! для программы, у которой нет I/O.
 
 ```ignore
     (@start $($Ooks:tt)*) => {
@@ -89,19 +89,19 @@ A few small notes:
     };
 ```
 
-### Opcode parsing
+### Парсинг кода операции
 
-Next are the "execute" rules, which are used to parse opcodes from the input.
+Далее следуют правила "выполнения", которые используется для парсинга кода операции на входе.
 
-The general form of these rules is `(@e $syms; ($input))`.  As you can see from the `@start` rule, `$syms` is the collection of symbols needed to actually implement the program: input, output, the memory array, *etc.*.  We are using [TT bundling](../pat/README.html#tt-bundling) to simplify forwarding of these symbols through later, intermediate rules.
+Обычная форма этих правил - `(@e $syms; ($input))`. Как можно заметить из правила  `@start`, `$syms` - это коллекция символов, необходимая для того, чтобы реализовать программу: вход, выход, массив памяти, *и т.д.*.  Мы используем  [TT bundling](../pat/README.html#tt-bundling) для простой передачи этих символов дальше, промежуточным правилам.
 
-First, is the rule that terminates our recursion: once we have no more input, we stop.
+Во-первых, это правило прерывает нашу рекурсию: если на входе у нас ничего нет - мы останавливаемся.
 
 ```ignore
     (@e $syms:tt; ()) => {};
 ```
 
-Next, we have a single rule for *almost* each opcode.  For these, we strip off the opcode, emit the corresponding Rust code, then recurse on the input tail: a textbook [TT muncher](../pat/README.html#incremental-tt-munchers).
+Во-вторых, у нас есть одно правило для *почти* каждого кода операции. Для этого мы берем код операции, подставляем соответствующий код на Rust, затем рекурсивно перемещаемся в хвост входа: прямо по книге [TT muncher](../pat/README.html#incremental-tt-munchers).
 
 ```ignore
     // Increment pointer.
@@ -159,19 +159,19 @@ Next, we have a single rule for *almost* each opcode.  For these, we strip off t
     };
 ```
 
-Here is where things get more complicated.  This opcode, `Ook! Ook?`, marks the start of a loop.  Ook! loops are translated to the following Rust code:
+Вот здесь вещи становятся более запутанными.  Этот код, `Ook! Ook?`, означает начало цикла. Циклы Ook! переводятся в следующий код на Rust:
 
-> **Note**: this is *not* part of the larger code.
+> **Замечание**: это *не* рабочая часть кода.
 >
 > ```ignore
 > while memory[ptr] != 0 {
->     // Contents of loop
+>     // Содержимое цикла
 > }
 > ```
 
-Of course, we cannot *actually* emit an incomplete loop.  This *could* be solved by using [pushdown](../pat/README.html#push-down-accumulation), were it not for a more fundamental problem: we cannot *write* `while memory[ptr] != {`, at all, *anywhere*.  This is because doing so would introduce an unbalanced brace.
+Конечно, мы не можем *на самом деле* выделить незаконченный цикл.  Это *можно* решить, используя  [pushdown](../pat/README.html#push-down-accumulation), что ведет к более фундаментальной проблеме: мы не можем *написать* `while memory[ptr] != {`, в принципе, *где бы то ни было*.  Это происходит потому, что в противном случае у нас появится лишняя, "висячая", скобка.
 
-The solution to this is to actually split the input into two parts: everything *inside* the loop, and everything *after* it.  The `@x` rules handle the first, `@s` the latter.
+Для того, чтобы решить это, мы разделяем вход на две части: все *внутри* цикла, и все, что *после* него.  Правила `@x` берут на себя первое, `@s` - второе.
 
 ```ignore
     (@e ($a:expr, $i:expr, $inc:expr, $dec:expr, $r:expr, $w:expr, $re:expr);
@@ -184,61 +184,61 @@ The solution to this is to actually split the input into two parts: everything *
     };
 ```
 
-### Loop extraction
+### Извлечение цикла
 
-Next are the `@x`, or "extraction", rules.  These are responsible for taking an input tail and extracting the contents of a loop.  The general form of these rules is: `(@x $sym; $depth; $buf; $tail)`.
+Следующее - `@x`, или правило "извлечения". Оно отвечает за следующее - взять хвост со входа и извлечь содержимое из цикла.  Общая форма этого правила: `(@x $sym; $depth; $buf; $tail)`.
 
-The purpose of `$sym` is the same as above.  `$tail` is the input to be parsed, whilst `$buf` is a [push-down accumulation buffer](../pat/README.html#push-down-accumulation) into which we will collect the opcodes that are inside the loop.  But what of `$depth`?
+Назначение `$sym` такое же, как и выше.  `$tail` - это вход, который нужно распарсить, в то время как `$buf` - это [push-down accumulation buffer](../pat/README.html#push-down-accumulation), в который мы будем собирать коды операций, находящиеся внутри цикла. Но что на счет `$depth`?
 
-A complication to all this is that loops can be *nested*.  Thus, we must have some way of keeping track of how many levels deep we currently are.  We must track this accurately enough to not stop parsing too early, nor too late, but when the level is *just right*.[^justright]
+Сложности добавляет то, что циклы могут быть  *вложенными*.  Итак, мы должны как-то отслеживать, сколько уровней вложенности у нас в данный момент.  Мы должны делать это очень аккуратно, чтобы не остановить парсинг слишком рано или слишком поздно, а остановить именно тогда *когда нужно*.[^когда нужно]
 
-[^justright]:
-    It is a little known fact[^fact] that the story of Goldie Locks was actually an allegory for accurate lexical parsing techniques.
+[^когда нужно]:
+    Это известный факт[^факт], что сказка "Маша и три медведя" - это на самом деле аллегория на технику аккуратного лексического парсинга.
 
-[^fact]: And by "fact" I mean "shameless fabrication".
+[^факт]: И под "фактом" я подразумеваю "бесстыдное вранье".
 
-Since we cannot do arithmetic in macros, and it would be infeasible to write out explicit integer-matching rules (imagine the following rules all copy & pasted for a non-trivial number of positive integers), we will instead fall back on one of the most ancient and venerable counting methods in history: counting on our fingers.
+Из-за того, что мы не можем выполнять арифметические действия в макросах, а написание собственных правил явного совпадения с целым числом является неосуществимым (представьте очень много копи-паста таких правил для всех положительных целых чисел), мы вместо этого вернемся к самому древнему и самому почтенному методу счета в истории: счету на пальцах.
 
-But as macros don't *have* fingers, we'll use a [token abacus counter](../pat/README.html#abacus-counters) instead.  Specifically, we will use `@`s, where each `@` represents one additional level of depth.  If we keep these `@`s contained in a group, we can implement the three important operations we need:
+Но из-за того, что у макроса *нет* пальцев, мы используем [token abacus counter](../pat/README.html#abacus-counters) вместо них. Для специфики, мы будем использовать много`@`, где каждое `@` представляет собой один дополнительный уровень. Если мы объединим эти `@` в группу, мы сможем реализовать три операции, которые нам нужны:
 
-* Increment: match `($($depth:tt)*)`, substitute `(@ $($depth)*)`.
-* Decrement: match `(@ $($depth:tt)*)`, substitute `($($depth)*)`.
-* Compare to zero: match `()`.
+* Инкремент: `($($depth:tt)*)` заменяем на `(@ $($depth)*)`.
+* Декремент:  `(@ $($depth:tt)*)` заменяем на `($($depth)*)`.
+* Сравнение с нулем: сравнение с `()`.
 
-First is a rule to detect when we find the matching `Ook? Ook!` sequence that closes the loop we're parsing.  In this case, we feed the accumulated loop contents to the previously defined `@e` rules.
+Во-первых, это правило, необходимое, чтобы найти совпадение с выражением `Ook? Ook!`, заканчивающее цикл, который мы парсим. В этом случае мы скармливаем накопленное содержание цикла правилам `@e`, определенным до этого.
 
-Note that we *do not* need to do anything with the remaining input tail (that will be handled by the `@s` rules).
+Заметьте, что нам *не нужно* делать что-либо с оставшимся хвостом на входе (он будет обрабатываться правилами `@s`).
 
 ```ignore
     (@x $syms:tt; (); ($($buf:tt)*);
         (Ook? Ook! $($tail:tt)*))
     => {
-        // Outer-most loop is closed.  Process the buffered tokens.
+        // Внешний цикл заканчивается. Обрабатываем значения из буфера.
         Ook!(@e $syms; ($($buf)*));
     };
 ```
 
-Next, we have rules for entering and exiting nested loops.  These adjust the counter and add the opcodes to the buffer.
+Во-вторых, у нас есть правила для входа и выхода из вложенных циклов.  Это увеличивает счетчик и добавляет коды операций в буфер.
 
 ```ignore
     (@x $syms:tt; ($($depth:tt)*); ($($buf:tt)*);
         (Ook! Ook? $($tail:tt)*))
     => {
-        // One level deeper.
+        // На один уровень глубже.
         Ook!(@x $syms; (@ $($depth)*); ($($buf)* Ook! Ook?); ($($tail)*));
     };
     
     (@x $syms:tt; (@ $($depth:tt)*); ($($buf:tt)*);
         (Ook? Ook! $($tail:tt)*))
     => {
-        // One level higher.
+        // На один уровень выше.
         Ook!(@x $syms; ($($depth)*); ($($buf)* Ook? Ook!); ($($tail)*));
     };
 ```
 
-Finally, we have a rule for "everything else".  Note the `$op0` and `$op1` captures: as far as Rust is concerned, our Ook! tokens are always *two* Rust tokens: the identifier `Ook`, and another token.  Thus, we can generalise over all non-loop opcodes by matching `!`, `?`, and `.` as `tt`s.
+Наконец, у нас есть правило для "всего остального". Обратите внимание на метапеременные `$op0` и `$op1`: как подразумевается в Rust, наш токен Ook! - это всегда *два* токена в Rust: идентификатор `Ook` и другой токен. Таким образом, мы можем найти все нецикличные коды операций по совпадению с `!`, `?` и `.` вместо `tt`.
 
-Here, we leave `$depth` untouched and just add the opcodes to the buffer.
+Здесь мы оставляем `$depth` нетронутым и просто добавляем коды операций в буфер.
 
 ```ignore
     (@x $syms:tt; $depth:tt; ($($buf:tt)*);
@@ -248,35 +248,35 @@ Here, we leave `$depth` untouched and just add the opcodes to the buffer.
     };
 ```
 
-### Loop Skipping
+### Пропуск цикла
 
-This is *broadly* the same as loop extraction, except we don't care about the *contents* of the loop (and as such, don't need the accumulation buffer).  All we need to know is when we are *past* the loop.  At that point, we resume processing the input using the `@e` rules.
+Это *в целом* то же самое, что и извлечение цикла, кроме того, что мы не заботимся о *содержании* цикла (и, в связи с этим, нам не нужен буфер накопления). Все, что нам нужно - это знать когда мы *прошли* мимо цикла. В этом случае мы продолжаем обрабатывать вход, используя правила `@e`.
 
-As such, these rules are presented without further exposition.
+В связи с вышесказанным, эти правила представлены без дальнейших объяснений.
 
 ```ignore
-    // End of loop.
+    // Конец цикла
     (@s $syms:tt; ();
         (Ook? Ook! $($tail:tt)*))
     => {
         Ook!(@e $syms; ($($tail)*));
     };
 
-    // Enter nested loop.
+    // Вход во вложенный цикл.
     (@s $syms:tt; ($($depth:tt)*);
         (Ook! Ook? $($tail:tt)*))
     => {
         Ook!(@s $syms; (@ $($depth)*); ($($tail)*));
     };
     
-    // Exit nested loop.
+    // Выход из вложенного цикла.
     (@s $syms:tt; (@ $($depth:tt)*);
         (Ook? Ook! $($tail:tt)*))
     => {
         Ook!(@s $syms; ($($depth)*); ($($tail)*));
     };
 
-    // Not a loop opcode.
+    // Не связанный с циклами код операции.
     (@s $syms:tt; ($($depth:tt)*);
         (Ook $op0:tt Ook $op1:tt $($tail:tt)*))
     => {
@@ -284,13 +284,13 @@ As such, these rules are presented without further exposition.
     };
 ```
 
-### Entry point
+### Точка входа
 
-This is the only non-internal rule.
+Это единственное не-внутреннее правило.
 
-It is worth noting that because this formulation simply matches *all* tokens provided to it, it is *extremely dangerous*.  Any mistake can cause an invocation to fail to match all the above rules, thus falling down to this one and triggering an infinite recursion.
+Стоит отметить, что этот шаблон просто ищет совпадения по *всем* токенам, переданным ему, и поэтому он  *чрезвычайно опасен*.  Любая ошибка может привести к неправильному распознаванию всех правил выше, что может в свою очередь привести к бесконечной рекурсии.
 
-When you are writing, modifying, or debugging a macro like this, it is wise to temporarily prefix rules such as this one with something, such as `@entry`.  This prevents the infinite recursion case, and you are more likely to get matcher errors at the appropriate place.
+Когда вы пишете, изменяете, или занимаетесь отладкой макроса как этот, будет уместно временно подставить в начало что-либо, навроде `@entry`.  Это позволит избежать случая бесконечной рекурсии, и, с большей вероятностью, приведет к ошибкам распознавания в правильных местах.
 
 ```ignore
     ($($Ooks:tt)*) => {
@@ -299,9 +299,9 @@ When you are writing, modifying, or debugging a macro like this, it is wise to t
 }
 ```
 
-### Usage
+### Использование
 
-Here, finally, is our test program.
+Вот, наконец, и наша тестовая программа.
 
 ```ignore
 fn main() {
@@ -349,18 +349,18 @@ fn main() {
 }
 ```
 
-The output when run (after a considerable pause for the compiler to do hundreds of recursive macro expansions) is:
+На выходе после запуска (после продолжительной паузы, во время которой компилятор выполнит сотни рекурсивных разворотов макроса) получается следующее:
 
 ```text
 Hello World!
 ```
 
-With that, we have demonstrated the horrifying truth that `macro_rules!` is Turing-complete!
+Этим мы показали ужасающую правду, что  `macro_rules!` является тьюринг-полным!
 
-### An aside
+### В дополнение
 
-This was based on a macro implementing an isomorphic language called "Hodor!".  Manish Goregaokar then [implemented a Brainfuck interpreter using the Hodor! macro](https://www.reddit.com/r/rust/comments/39wvrm/hodor_esolang_as_a_rust_macro/cs76rqk?context=10000).  So that is a Brainfuck interpreter written in Hodor! which was itself implemented using `macro_rules!`.
+Представленное выше основано на макро-реализации изоморфного языка "Hodor!".  Manish Goregaokar затем [реализовал интерпретатор Brainfuck, используя макрос Hodor!](https://www.reddit.com/r/rust/comments/39wvrm/hodor_esolang_as_a_rust_macro/cs76rqk?context=10000).  Таким образом, это интерпретатор  Brainfuck, написанный на  Hodor!, который, в свою очередь, написан на  `macro_rules!`.
 
-Legend has it that after raising the recursion limit to *three million* and allowing it to run for *four days*, it finally finished.
+Легенда гласит, что после увеличения лимита рекурсии до *трех миллионов* и запуска на *четыре дня*, он наконец выполнился.
 
-...by overflowing the stack and aborting.  To this day, esolang-as-macro remains a decidedly *non-viable* method of development with Rust.
+...переполнением стека и падением. И по настоящий день, эзоязык-как-макрос остается абсолютно *нежизнеспособным* методом разработки на Rust.

@@ -1,11 +1,11 @@
-% Enum Parsing
-
+% Парсинг Enum 
+ 
 ```rust
 macro_rules! parse_unitary_variants {
     (@as_expr $e:expr) => {$e};
     (@as_item $($i:item)+) => {$($i)+};
     
-    // Exit rules.
+    // Правила выхода.
     (
         @collect_unitary_variants ($callback:ident ( $($args:tt)* )),
         ($(,)*) -> ($($var_names:ident,)*)
@@ -26,7 +26,7 @@ macro_rules! parse_unitary_variants {
         }
     };
 
-    // Consume an attribute.
+    // Поглощение атрибута.
     (
         @collect_unitary_variants $fixed:tt,
         (#[$_attr:meta] $($tail:tt)*) -> ($($var_names:tt)*)
@@ -37,7 +37,7 @@ macro_rules! parse_unitary_variants {
         }
     };
 
-    // Handle a variant, optionally with an with initialiser.
+    // Обработка варианта, дополнительно: с инициализацией 
     (
         @collect_unitary_variants $fixed:tt,
         ($var:ident $(= $_val:expr)*, $($tail:tt)*) -> ($($var_names:tt)*)
@@ -48,7 +48,7 @@ macro_rules! parse_unitary_variants {
         }
     };
 
-    // Abort on variant with a payload.
+    // Отмена варианта с полезной нагрузкой (payload) 
     (
         @collect_unitary_variants $fixed:tt,
         ($var:ident $_struct:tt, $($tail:tt)*) -> ($($var_names:tt)*)
@@ -56,7 +56,7 @@ macro_rules! parse_unitary_variants {
         const _error: () = "cannot parse unitary variants from enum with non-unitary variants";
     };
     
-    // Entry rule.
+    // Правило входа.
     (enum $name:ident {$($body:tt)*} => $callback:ident $arg:tt) => {
         parse_unitary_variants! {
             @collect_unitary_variants
@@ -76,9 +76,9 @@ macro_rules! parse_unitary_variants {
 # }
 ```
 
-This macro shows how you can use an [incremental tt muncher] and [push-down accumulation] to parse the variants of an `enum` where all variants are unitary (*i.e.* they have no payload).  Upon completion, `parse_unitary_variants!` invokes a [callback] macro with the list of variants (plus any other arbitrary arguments supplied).
+Этот макрос показывает, как вы можете использовать [incremental tt muncher] и [push-down accumulation] для парсинга вариантов `enum` , в котором все варианты унитарны (*т.e.* не имеют полезной нагрузки (payload)).  После завершения, `parse_unitary_variants!` вызывает макрос [callback] со списком вариантов (плюс поддерживает любые другие произвольные аргументы).
 
-This can be modified to also parse `struct` fields, compute tag values for the variants, or even extract the names of *all* variants in an arbitrary `enum`.
+Его можно изменить, чтобы также парсить поля  `struct` , вычислять дополнительные значения для вариантов, или даже выделять имена  *всех* вариантов в произвольный  `enum`.
 
 [incremental tt muncher]: pat-incremental-tt-munchers.html
 [push-down accumulation]: pat-push-down-accumulation.html
