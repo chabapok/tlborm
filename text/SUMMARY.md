@@ -27,6 +27,6 @@
 * [Строительные блоки](blk-README.md)
     * [AST Преобразования](blk-ast-coercion.md)
     * [Подсчет](blk-counting.md)
-    * [Парсинг Enum ](blk-enum-parsing.md)
+    * [Разбор Enum ](blk-enum-parsing.md)
 * [Примеры с аннотацией](aeg-README.md)
     * [Ook!](aeg-ook.md)

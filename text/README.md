@@ -8,7 +8,7 @@
 
 ## Спасибо
 
-Спасибо за предолжения и исправления: IcyFoxy, Rym, TheMicroWorm, Yurume, akavel, cmr, eddyb, ogham, и snake_case.
+Спасибо за предложения и исправления: IcyFoxy, Rym, TheMicroWorm, Yurume, akavel, cmr, eddyb, ogham, и snake_case.
 
 ## Лицензия
 
