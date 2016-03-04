@@ -9,5 +9,5 @@
 Есть также [глава по макросам в Rust Book](http://doc.rust-
 lang.org/book/macros.html), которая более доступна, то есть объяснения даются на
 более высоком уровне, также есть  [практическое
-введение](https://danielkeep.github.io/practical-intro-to-macros.html) - глава в
-этой книге, в которой представлено руководство по реализации макроса.
+введение](https://github.com/ruRust/tlborm/blob/master/text/pim-README.md) -
+глава в этой книге, в которой представлено руководство по реализации макроса.
