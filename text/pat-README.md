@@ -1,3 +1,3 @@
-% Patterns
+% Паттерны
 
-Parsing and expansion patterns.
+Паттерны разбора и развертывания.

@@ -1,4 +1,4 @@
-% Trailing separators
+% Концевые разделители
 
 ```ignore
 macro_rules! match_exprs {
@@ -6,8 +6,15 @@ macro_rules! match_exprs {
 }
 ```
 
-There are various places in the Rust grammar where trailing commas are permitted.  The two common ways of matching (for example) a list of expressions (`$($exprs:expr),*` and `$($exprs:expr,)*`) can deal with *either* no trailing comma *or* a trailing comma, but *not both*.
+Есть много мест в грамматике  Rust, где нельзя использовать запятую в качестве
+разделителя. Два основных способа найти совпадение (например) со списком
+выражений (`$($exprs:expr),*` и `$($exprs:expr,)*`) могут работать как *без*,
+*так и* с разделяющей запятой, но *не оба случая одновременно*.
 
-Placing a `$(,)*` repetition *after* the main list, however, will capture any number (including zero or one) of trailing commas, or any other separator you may be using.
+Поставив повторение `$(,)*` *после* основного списка, можно захватить любое
+количество (включая ноль или одну) разделяющих запятых, или других разделителей,
+которые вы используете.
 
-Note that this cannot be used in all contexts.  If the compiler rejects this, you will likely need to use multiple arms and/or incremental matching.
+Помните только, что так получится сделать не всегда. Если компилятор отвергнет
+это, вам, вероятно, следует использовать несколько сопоставлений и/или
+инкрементальное сопоставление.

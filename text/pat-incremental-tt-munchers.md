@@ -1,4 +1,4 @@
-% Incremental TT munchers
+% Последовательный потребитель TT
 
 ```rust
 macro_rules! mixed_rules {
@@ -32,15 +32,30 @@ macro_rules! mixed_rules {
 # }
 ```
 
-This pattern is perhaps the *most powerful* macro parsing technique available, allowing one to parse grammars of significant complexity.
+Этот паттерн - возможно *самая мощная* доступная техника разбора макросов,
+позволяющая разбирать грамматику любой сложности.
 
-A "TT muncher" is a recursive macro that works by incrementally processing its input one step at a time.  At each step, it matches and removes (munches) some sequence of tokens from the start of its input, generates some intermediate output, then recurses on the input tail.
+"Потребитель TT" - это рекурсивный макрос, который работает, последовательно
+обрабатывая шаг за шагом то, что ему подали на вход. На каждом шаге он ищет
+совпадение и удаляет (потребляет) сочетание токенов из головы входа, создает
+какой-то промежуточный результат, затем вызывает сам себя с оставшейся частью
+входа в качестве аргумента.
 
-The reason for "TT" in the name specifically is that the unprocessed part of the input is *always* captured as `$($tail:tt)*`.  This is done as a `tt` repetition is the only way to *losslessly* capture part of a macro's input.
+Причина по которой "TT" указано в имени  - необработанная часть входа *всегда*
+захватывается как `$($tail:tt)*`. Делается это, потому что повторение `tt` - это
+единственный способ *без потерь* захватить часть входа макроса.
 
-The only hard restrictions on TT munchers are those imposed on the macro system as a whole:
+Единственными жесткими ограничениями, которые накладываются на потребитель TT,
+являются те же, что и на всю систему макросов в целом:
 
-* You can only match against literals and grammar constructs which can be captured by `macro_rules!`.
-* You cannot match unbalanced groups.
+* Вы можете использовать совпадение только с литералами или грамматическими
+конструкциями, которые могут захватываться `macro_rules!`.
 
-It is important, however, to keep the macro recursion limit in mind.  `macro_rules!` does not have *any* form of tail recursion elimination or optimisation.  It is recommended that, when writing a TT muncher, you make reasonable efforts to keep recursion as limited as possible.  This can be done by adding additional rules to account for variation in the input (as opposed to recursion into an intermediate layer), or by making compromises on the input syntax to make using standard repetitions more tractable.
+* Вы не можете использовать совпадение с несбалансированной группой.
+
+Важно, однако, помнить о лимите рекурсии макросов. `macro_rules!` не обладает
+*никакой* формой устранения или оптимизации хвостовой рекурсии. При написании
+потребителя TT рекомендуется предпринимать все усилия, чтобы удержаться в лимите
+рекурсии. Можно сделать это, добавляя дополнительные правила для учета вариантов
+входа (что противоположно использованию рекурсии в промежуточном слое), или, идя
+на компромиссы, и подгоняя вход под использования стандартных повторений.

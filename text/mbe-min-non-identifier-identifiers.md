@@ -1,8 +1,13 @@
-% Non-Identifier Identifiers
+% Идентификаторы, не являющиеся идентификаторами
 
-There are two tokens which you are likely to run into eventually that *look* like identifiers, but aren't.  Except when they are.
+Есть два токена, с которыми вы, вероятно, сталкивались когда-либо, которые
+*выглядят* как идентификаторы, но ими не являются.  Кроме случаев, когда они
+выступают именно в роли идентификаторов.
 
-First is `self`.  This is *very definitely* a keyword.  However, it also happens to fit the definition of an identifier.  In regular Rust code, there's no way for `self` to be interpreted as an identifier, but it *can* happen with macros:
+Первый - `self`. Это  *совершенно точно* ключевое слово. Однако, ему также
+случается быть определением идентификатора. В обычном коде на Rust `self` не
+может быть интерпретирован как идентификатор, но в макросе такая возможность
+*есть*:
 
 ```rust
 macro_rules! what_is {
@@ -20,14 +25,17 @@ fn main() {
 }
 ```
 
-The above outputs:
+Вывод следующий:
 
 ```text
 the keyword `self`
 the keyword `self`
 ```
 
-But that makes no sense; `call_with_ident!` required an identifier, matched one, and substituted it!  So `self` is both a keyword and not a keyword at the same time.  You might wonder how this is in any way important.  Take this example:
+Но в этом нет смысла; `call_with_ident!` требует идентификатор, находит
+совпадение с образцом, и заменяет его! Получается `self` в одно и то же время
+как является ключевым словом, так им и не является. Возможно, вам непонятно, в
+каких случаях это может быть важно. Рассмотрим такой пример:
 
 ```ignore
 macro_rules! make_mutable {
@@ -49,7 +57,7 @@ impl Dummy {
 # }
 ```
 
-This fails to compile with:
+Возникнет ошибка при компиляции:
 
 ```text
 <anon>:2:28: 2:30 error: expected identifier, found keyword `self`
@@ -57,7 +65,11 @@ This fails to compile with:
                                     ^~
 ```
 
-So the macro will happily match `self` as an identifier, allowing you to use it in cases where you can't actually use it.  But, fine; it somehow remembers that `self` is a keyword even when it's an identifier, so you *should* be able to do this, right?
+То есть макрос спокойно и успешно сопоставил `self` с идентификатором, позволив
+вам использовать его в случае, когда вам на самом деле так его использовать
+нельзя. Но, постойте; он каким-то образом помнит еще и что `self` является
+ключевым словом, даже если это идентификатор. Поэтому, пример ниже будет
+работать, так ведь?
 
 ```ignore
 macro_rules! make_self_mutable {
@@ -79,7 +91,7 @@ impl Dummy {
 # }
 ```
 
-This fails with:
+Здесь выдаётся ошибка:
 
 ```text
 <anon>:2:33: 2:37 error: `self` is not available in a static method. Maybe a `self` argument is missing? [E0424]
@@ -87,7 +99,10 @@ This fails with:
                                          ^~~~
 ```
 
-*That* doesn't make any sense, either.  It's *not* in a static method.  It's almost like it's complaining that the `self` it's trying to use isn't the *same* `self`... as though the `self` keyword has hygiene, like an... identifier.
+Это тоже не имеет никакого смысла. `self` и не находится в статическом методе.
+Очень похоже, что компилятор жалуется, что `self`, который он пытается
+использовать - это не тот же самый `self`... получается у ключевого слова `self`
+гигиена, как у... идентификатора.
 
 ```ignore
 macro_rules! double_method {
@@ -112,7 +127,7 @@ impl Dummy {
 # }
 ```
 
-Same error.  What about...
+Та же ошибка.  Что насчет...
 
 ```rust
 macro_rules! double_method {
@@ -137,7 +152,9 @@ impl Dummy {
 # }
 ```
 
-At last, *this works*.  So `self` is both a keyword *and* an identifier when it feels like it.  Surely this works for other, similar constructs, right?
+Наконец-то, *заработало*.  Получается `self` является как ключевым словом, *так
+и* идентификатором - как ему захочется. Конечно, это сработает и для
+других, похожих конструкций, не так ли?
 
 ```ignore
 macro_rules! double_method {
@@ -165,8 +182,13 @@ impl Dummy {
                               ^
 ```
 
-No, of course not.  `_` is a keyword that is valid in patterns and expressions, but somehow *isn't* an identifier like the keyword `self` is, despite matching the definition of an identifier just the same.
+Нет, конечно нет.  `_` это ключевое слово, которое правильно в образцах и
+выражениях, но при этом *не является* идентификатором в том смысле, как им
+является `self`, несмотря на то, что описание идентификатора абсолютно такое же.
 
-You might think you can get around this by using `$self_:pat` instead; that way, `_` will match!  Except, no, because `self` isn't a pattern.  Joy.
+Вам может показаться, что это можно обойти, используя  `$self_:pat`; и в таком
+случае, `_` подойдет!  За исключением того, что... нет, не подойдет, потому что
+`self` не является образцом. Улыбаемся и машем.
 
-The only work around for this (in cases where you want to accept some combination of these tokens) is to use a `tt` matcher instead.
+Как-то обойти это в данном случае (в случае если вам нужна комбинация этих
+токенов) можно, используя совпадения с образцом по `tt` вместо этого.

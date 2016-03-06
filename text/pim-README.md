@@ -1,16 +1,28 @@
-% Macros, A Practical Introduction
+% Макросы, Практическое введение
 
-This chapter will introduce the Rust macro-by-example system using a relatively simple, practical example.  It does *not* attempt to explain all of the intricacies of the system; its goal is to get you comfortable with how and why macros are written.
+Эта глава расскажет о системе макросов Rust, называемой "макрос-по-примеру". 
+Мы сделаем это на практике, рассматривая простой, но реально применимый макрос.
+Мы *не* будем пытаться объяснить всю сложность системы; нашей целью является 
+сделать так, чтобы вы чувствовали себя комфортно с макросами и понимали, как 
+и почему они пишутся.
 
-There is also the [Macros chapter of the Rust Book](http://doc.rust-lang.org/book/macros.html) which is another high-level explanation, and the [methodical introduction](mbe-README.html) chapter of this book, which explains the macro system in detail.
+Есть также [глава по макросам в Rust Book](http://doc.rust-lang.org/book/macros.html),
+в которой объяснения даются на более высоком уровне и [методическое введение](mbe-README.html) 
+- глава в этой книге, которая объясняет систему макросов подробно.
 
-## A Little Context
+## Немного контекста
 
-> **Note**: don't panic!  What follows is the only math will be talked about.  You can quite safely skip this section if you just want to get to the meat of the article.
+> **Заметка**: не паникуйте! Дальше пойдет разговор о математике. Вы можете
+спокойно пропустить этот раздел, если хотите добраться до самого мяса этой
+статьи.
 
-If you aren't familiar, a recurrence relation is a sequence where each value is defined in terms of one or more *previous* values, with one or more initial values to get the whole thing started.  For example, the [Fibonacci sequence](https://en.wikipedia.org/wiki/Fibonacci_number) can be defined by the relation:
+Возможно, вы уже знакомы с термином "рекуррентое соотношение". На всякий случай, 
+напомним рекуррентное соотношение - это последовательность, в которой
+каждое значение определяется в терминах одного или нескольких *предыдущих*, с
+одним или несколькими начальными значениями. Например, [последовательность Фибоначчи](https://en.wikipedia.org/wiki/Fibonacci_number) 
+можно описать такой связью:
 
-<!-- MATH START: $F_n = 0, 1, \ldots, F_n-1 + F_n - 2$ -->
+<!-- Начало математики: $F_n = 0, 1, \ldots, F_n-1 + F_n - 2$ -->
 <style type="text/css">
     .katex {
         font: 400 1.21em/1.2 KaTeX_Main;
@@ -58,21 +70,32 @@ If you aren't familiar, a recurrence relation is a sequence where each value is 
 <div class="katex" style="font-size: 100%; text-align: center;">
     <span class="katex"><span class="katex-inner"><span style="height: 0.68333em;" class="strut"></span><span style="height: 0.891661em; vertical-align: -0.208331em;" class="strut bottom"></span><span class="base textstyle uncramped"><span class="reset-textstyle displaystyle textstyle uncramped"><span class="mord displaystyle textstyle uncramped"><span class="mord"><span class="mord mathit" style="margin-right: 0.13889em;">F</span><span class="vlist"><span style="top: 0.15em; margin-right: 0.05em; margin-left: -0.13889em;" class=""><span class="fontsize-ensurer reset-size5 size5"><span style="font-size: 0em;" class="">​</span></span><span class="reset-textstyle scriptstyle cramped"><span class="mord mathit">n</span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size: 0em;" class="">​</span></span>​</span></span></span><span class="mrel">=</span><span class="mord">0</span><span class="mpunct">,</span><span class="mord">1</span><span class="mpunct">,</span><span class="mpunct">…</span><span class="mpunct">,</span><span class="mord"><span class="mord mathit" style="margin-right: 0.13889em;">F</span><span class="vlist"><span style="top: 0.15em; margin-right: 0.05em; margin-left: -0.13889em;" class=""><span class="fontsize-ensurer reset-size5 size5"><span style="font-size: 0em;" class="">​</span></span><span class="reset-textstyle scriptstyle cramped"><span class="mord scriptstyle cramped"><span class="mord mathit">n</span><span class="mbin">−</span><span class="mord">1</span></span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size: 0em;" class="">​</span></span>​</span></span></span><span class="mbin">+</span><span class="mord"><span class="mord mathit" style="margin-right: 0.13889em;">F</span><span class="vlist"><span style="top: 0.15em; margin-right: 0.05em; margin-left: -0.13889em;" class=""><span class="fontsize-ensurer reset-size5 size5"><span style="font-size: 0em;" class="">​</span></span><span class="reset-textstyle scriptstyle cramped"><span class="mord scriptstyle cramped"><span class="mord mathit">n</span><span class="mbin">-</span><span class="mord">2</span></span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size: 0em;" class="">​</span></span>​</span></span></span></span></span></span></span></span>
 </div>
-<!-- MATH END -->
+<!-- Конец Математики -->
 
-Thus, the first two numbers in the sequence are 0 and 1, with the third being <em>F<sub>0</sub></em> + <em>F<sub>1</sub></em> = 0 + 1 = 1, the fourth <em>F<sub>1</sub></em> + <em>F<sub>2</sub></em> = 1 + 1 = 2, and so on forever.
+Итак, первые два числа в последовательности - 0 и 1, а третье -
+<em>F<sub>0</sub></em> + <em>F<sub>1</sub></em> = 0 + 1 = 1, четвертое -
+<em>F<sub>1</sub></em> + <em>F<sub>2</sub></em> = 1 + 1 = 2, и так далее.
 
-Now, *because* such a sequence can go on forever, that makes defining a `fibonacci` function a little tricky, since you obviously don't want to try returning a complete vector.  What you *want* is to return something which will lazily compute elements of the sequence as needed.
+*Из-за того, что* такая последовательность может продолжаться бесконечно,
+описание функции `fibonacci` получилось довольно хитрым, ведь вам же не нужно
+возвращать полный список элементов. Все, что вы *хотите* - это вернуть что-то,
+лениво просчитав столько элементов, сколько надо.
 
-In Rust, that means producing an `Iterator`.  This is not especially *hard*, but there is a fair amount of boilerplate involved: you need to define a custom type, work out what state needs to be stored in it, then implement the `Iterator` trait for it.
+В Rust это достигается путём создания `Iterator`. Это не особо *трудно*, но тут
+потребуется довольно много рутинных действий: нужно определить свой тип, понять,
+какое состояние хранить в нем, и затем реализовать типаж `Iterator` для него.
 
-However, recurrence relations are simple enough that almost all of these details can be abstracted out with a little macro-based code generation.
+Однако, рекуррентное соотношение - это настолько просто, что почти от всех
+конкретных деталей можно абстрагироваться и создать маленький генератор кода на
+базе макроса.
 
-So, with all that having been said, let's get started.
+Итак, имея ввиду всё сказанное выше, давайте начнем.
 
-## Construction
+## Создание
 
-Usually, when working on a new macro, the first thing I do is decide what the macro invocation should look like.  In this specific case, my first attempt looked like this:
+Обычно, если я работаю над новым макросом, первое, что я решаю - это то, как
+будет выглядеть вызов макроса. В данном конкретном случае в первом приближении
+получится следующее:
 
 ```ignore
 let fib = recurrence![a[n] = 0, 1, ..., a[n-1] + a[n-2]];
@@ -80,7 +103,10 @@ let fib = recurrence![a[n] = 0, 1, ..., a[n-1] + a[n-2]];
 for e in fib.take(10) { println!("{}", e) }
 ```
 
-From that, we can take a stab at how the macro should be defined, even if we aren't sure of the actual expansion.  This is useful because if you can't figure out how to parse the input syntax, then *maybe* you need to change it.
+После этого мы можем обратить внимание на определение макроса, даже если мы не
+уверены, во что он должен разворачиваться. Это полезно, потому что если вам пока
+непонятно, как разбирать входящий синтаксис, то, *возможно*, вам придется
+поменять его.
 
 ```rust
 macro_rules! recurrence {
@@ -89,19 +115,34 @@ macro_rules! recurrence {
 # fn main() {}
 ```
 
-Assuming you aren't familiar with the syntax, allow me to elucidate.  This is defining a macro, using the `macro_rules!` system, called `recurrence!`.  This macro has a single parsing rule.  That rule says the input to the macro must match:
+Подразумевая, что вы не знакомы с синтаксисом, позвольте мне объяснить это
+определение. Здесь представлено определение макроса, созданное через систему
+`macro_rules!`, названное `recurrence!`. У этого макроса одно правило разбора.
+Это правило говорит, что вход данного макроса должен совпадать с:
 
-- the literal token sequence `a` `[` `n` `]` `=`,
-- a repeating (the `$( ... )`) sequence, using `,` as a separator, and one or more (`+`) repeats of:
-    - a valid *expression* captured into the variable `inits` (`$inits:expr`)
-- the literal token sequence `,` `...` `,`,
-- a valid *expression* captured into the variable `recur` (`$recur:expr`).
+- последовательностью литеральных токенов `a` `[` `n` `]` `=`,
+- повторяющейся последовательностью (`$( ... )`), использующей `,` в качестве разделителя, 
+и одно или больше (`+`) повторений:
+    - правильного *выражения*, захваченного в переменную `inits` (`$inits:expr`)
+- последовательностью литеральных токенов `,` `...` `,`,
+- правильного *выражения*, захваченного в переменную `recur` (`$recur:expr`).
 
-Finally, the rule says that *if* the input matches this rule, then the macro invocation should be replaced by the token sequence `/* ... */`.
+Наконец, правило говорит, *если* вход совпадает с образцом, то вызов макроса
+нужно заменить на последовательность токенов `/* ... */`.
 
-It's worth noting that `inits`, as implied by the name, actually contains *all* the expressions that match in this position, not just the first or last.  What's more, it captures them *as a sequence* as opposed to, say, irreversibly pasting them all together.  Also note that you can do "zero or more" with a repetition by using `*` instead of `+`.  There is no support for "zero or one" or more specific numbers of repetitions.
+Стоит отметить, что `inits`, как понятно из названия, на самом деле содержит
+*все* выражения, которые совпадают на этой позиции, а не только первое или
+последнее. Более того, они захватываются *как последовательность*, а не 
+склеиваются все вместе в одно. Также помните, что вы можете изменить
+повторение на "ноль и больше", используя `*` вместо `+`. Поддержки "нуля или 
+одного" или еще более конкретного числа повторений тут нет.
 
-As an exercise, let's take the proposed input and feed it through the rule, to see how it is processed.  The "Position" column will show which part of the syntax pattern needs to be matched against next, denoted by a "⌂".  Note that in some cases, there might be more than one possible "next" element to match against.  "Input" will contain all of the tokens that have *not* been consumed yet.  `inits` and `recur` will contain the contents of those bindings.
+В качестве упражнения давайте возьмем прелагаемый вход и пропустим его через
+правило, чтобы посмотреть, как оно выполняется. Колонка "позиция", показывающая,
+какая часть паттерна должна совпасть следующей, отмечается "⌂". Помните, что в
+некоторых случаях может быть больше одного возможного "следующего" элемента, с
+которым найдется совпадение. "Вход" будет содержать все токены, которые еще
+*не* были обработаны. `inits` и `recur` будут содержать содержимое их выражений.
 
 <style type="text/css">
     /* Customisations. */
@@ -139,8 +180,8 @@ As an exercise, let's take the proposed input and feed it through the rule, to s
 <table class="parse-table">
     <thead>
         <tr>
-            <th>Position</th>
-            <th>Input</th>
+            <th>Позиция</th>
+            <th>Вход</th>
             <th><code>inits</code></th>
             <th><code>recur</code></th>
         </tr>
@@ -205,7 +246,11 @@ As an exercise, let's take the proposed input and feed it through the rule, to s
         <tr>
             <td colspan="4" style="font-size:.7em;">
 
-<em>Note</em>: there are two ⌂ here, because the next input token might match <em>either</em> the comma separator <em>between</em>em> elements in the repetition, <em>or</em> the comma <em>after</em> the repetition.  The macro system will keep track of both possibilities, until it is able to decide which one to follow.
+<em>Внимание</em>: здесь два ⌂, потому что следующий входной токен можно
+сопоставить и <em>с</em> запятой-разделителем <em>между</em> элементами в
+повторении, <em>и с</em> запятой <em>после</em> повторения. Система макроса будет
+помнить обе возможности, до тех пор пока не сможет определить, какую
+выбрать.
 
             </td>
         </tr>
@@ -226,7 +271,8 @@ As an exercise, let's take the proposed input and feed it through the rule, to s
         <tr>
             <td colspan="4" style="font-size:.7em;">
 
-<em>Note</em>: the third, crossed-out marker indicates that the macro system has, as a consequence of the last token consumed, eliminated one of the previous possible branches.
+<em>Внимание</em>: третий, подчеркнутый маркер показывает, что система макроса
+после обработки последнего токена удалила одну из предыдущих возможных веток.
 
             </td>
         </tr>
@@ -261,7 +307,12 @@ As an exercise, let's take the proposed input and feed it through the rule, to s
         <tr>
             <td colspan="4" style="font-size:.7em;">
 
-<em>Note</em>: this particular step should make it clear that a binding like <tt>$recur:expr</tt> will consume an <em>entire expression</em>, using the compiler's knowledge of what constitutes a valid expression.  As will be noted later, you can do this for other language constructs, too.
+                <em>Внимание</em>: этот конкретный шаг должен объяснить, что
+                такая связь, как <tt>$recur:expr</tt>, заменит <em>все
+                выражение</em>, используя знания компилятора о том, что считать
+                правильным выражением. Как будет рассказано дальше, вы можете
+                так делать и с другими конструкциями языка.
+
 
             </td>
         </tr>
@@ -270,9 +321,12 @@ As an exercise, let's take the proposed input and feed it through the rule, to s
 
 <p></p>
 
-The key take-away from this is that the macro system will *try* to incrementally match the tokens provided as input to the macro against the provided rules.  We'll come back to the "try" part.
+Что нужно понять из этого всего, это то, что система макросов будет *пытаться*
+последовательно сопоставить предложенные на входе токены с представленным
+правилом. Мы ещё поговорим о том, почему именно "пытаться".
 
-Now, let's begin writing the final, fully expanded form.  For this expansion, I was looking for something like:
+Теперь давайте напишем конечную полностью развернутую форму. Для этого
+развертывания я хотел получить что-то вроде этого:
 
 ```ignore
 let fib = {
@@ -282,9 +336,13 @@ let fib = {
     }
 ```
 
-This will be the actual iterator type.  `mem` will be the memo buffer to hold the last few values so the recurrence can be computed.  `pos` is to keep track of the value of `n`.
+Это будет тип итератора. `mem` будет буфером в памяти, который будет содержать
+несколько последних значений, достаточных для продолжения рекуррентных
+вычислений. `pos` должен следить за значением `n`.
 
-> **Aside**: I've chosen `u64` as a "sufficiently large" type for the elements of this sequence.  Don't worry about how this will work out for *other* sequences; we'll come to it.
+> **Пояснение**: Я выбрал `u64` как "достаточно большой" тип для элементов этой
+последовательности.  Не волнуйтесь о том, как это будет работать для
+*других* последовательностей; мы еще вернемся к этому.
 
 ```ignore
     impl Iterator for Recurrence {
@@ -298,7 +356,8 @@ This will be the actual iterator type.  `mem` will be the memo buffer to hold th
                 Some(next_val)
 ```
 
-We need a branch to yield the initial values of the sequence; nothing tricky.
+Нам нужна ветка, которая будет заполнять начальные значения последовательности;
+ничего необычного.
 
 ```ignore
             } else {
@@ -315,7 +374,10 @@ We need a branch to yield the initial values of the sequence; nothing tricky.
     }
 ```
 
-This is a bit harder; we'll come back and look at *how* exactly to define `a`.  Also, `TODO_shuffle_down_and_append` is another placeholder; I want something that places `next_val` on the end of the array, shuffling the rest down by one space, dropping the 0th element.
+Тут все немножко посложнее; мы еще вернемся и посмотрим, *как* именно определить
+`a`.  `TODO_shuffle_down_and_append` - это еще один временный заполнитель;
+Мне нужно что-то, что заменит `next_val` в конце массива, сдвинув все остальное
+вниз на одну позицию и удалив 0-й элемент.
 
 ```ignore
 
@@ -325,7 +387,8 @@ This is a bit harder; we'll come back and look at *how* exactly to define `a`.  
 for e in fib.take(10) { println!("{}", e) }
 ```
 
-Lastly, return an instance of our new structure, which can then be iterated over.  To summarise, the complete expansion is:
+Наконец, вернем экземпляр нашей новой структуры, по которому затем можно
+выполнять итерации. Объединив все, полное развертывание будет выглядеть так:
 
 ```ignore
 let fib = {
@@ -362,9 +425,16 @@ let fib = {
 for e in fib.take(10) { println!("{}", e) }
 ```
 
-> **Aside**: Yes, this *does* mean we're defining a different `Recurrence` struct and its implementation for each macro invocation.  Most of this will optimise away in the final binary, with some judicious use of `#[inline]` attributes.
+> **Пояснение**: Да, это *действительно* означает, что мы определяем разные
+структуры `Recurrence` и их реализации при каждом вызове макроса.
+Большинство из этого мы оптимизируем в конце разумным использованием
+атрибута `#[inline]`.
 
-It's also useful to check your expansion as you're writing it.  If you see anything in the expansion that needs to vary with the invocation, but *isn't* in the actual macro syntax, you should work out where to introduce it.  In this case, we've added `u64`, but that's not neccesarily what the user wants, nor is it in the macro syntax.  So let's fix that.
+Очень полезно проверять развертывание во время его написания. Если вы заметите, 
+что в развертывании что-то должно быть переменным при вызове, но на текущий момент
+не входит в синтаксис макроса, вы должны решить, как дать возможность изменения 
+данного параметра. В данном случае мы добавили `u64`, но пользователь может 
+захотеть что-то другое. Поэтому давайте исправим это.
 
 ```rust
 macro_rules! recurrence {
@@ -379,19 +449,30 @@ for e in fib.take(10) { println!("{}", e) }
 # fn main() {}
 ```
 
-Here, I've added a new capture: `sty` which should be a type.
+Здесь я добавил новый захват в метапеременную: `sty`, которая обозначает тип.
 
-> **Aside**: if you're wondering, the bit after the colon in a capture can be one of several kinds of syntax matchers.  The most common ones are `item`, `expr`, and `ty`.  A complete explanation can be found in [Macros, A Methodical Introduction; `macro_rules!` (Captures)](mbe-macro-rules.html#captures).
+> **Пояснение**: Если вам интересно, кусок, идущий после двоеточия в захвате, 
+может быть одним из определенных типов сопоставления синтаксиса. 
+Самые распространенные - это `item`, `expr` и `ty`. Полное объяснение дается в 
+[Макросы, Методическое введение; `macro_rules!` (Захват)](mbe-macro-rules.html#captures).
+
 >
-> There's one other thing to be aware of: in the interests of future-proofing the language, the compiler restricts what tokens you're allowed to put *after* a matcher, depending on what kind it is.  Typically, this comes up when trying to match expressions or statements; those can *only* be followed by one of `=>`, `,`, and `;`.
+> Есть тут еще одна интересная вещь: в интересах будущего улучшения языка 
+компилятор ограничивает то, какие токены вы можете ставить *после* сопоставления,
+ основываясь на его типе. Обычно с этим можно столкнуться, когда выполняется сопоставление
+ с выражениями и утверждениями; за ними может идти *только*  `=>`, `,` и `;`.
 >
-> A complete list can be found in [Macros, A Methodical Introduction; Minutiae; Captures and Expansion Redux](mbe-min-captures-and-expansion-redux.html).
+> Полный список можно найти в [Макросы, Методическое введение; Мелочи; Вернемся к Метапеременным и Развертыванию](mbe-min-captures-and-expansion-redux.html).
 
-## Indexing and Shuffling
+## Индексирование и сдвиг
 
-I will skim a bit over this part, since it's effectively tangential to the macro stuff.  We want to make it so that the user can access previous values in the sequence by indexing `a`; we want it to act as a sliding window keeping the last few (in this case, 2) elements of the sequence.
+Я не буду уделять много внимания этой части, потому что она не затрагивает
+напрямую макросы. Мы хотим сделать так, чтобы пользователь смог обращаться к
+предыдущим значениям в последовательности, индексируя `a`; мы хотим, чтобы это
+работало как сдвигающееся окно, в котором видны только последние элементы 
+последовательности (в данном случае, 2).
 
-We can do this pretty easily with a wrapper type:
+Можем сделать это довольно просто, используя тип-обертку:
 
 ```ignore
 struct IndexOffset<'a> {
@@ -416,17 +497,29 @@ impl<'a> Index<usize> for IndexOffset<'a> {
 }
 ```
 
-> **Aside**: since lifetimes come up *a lot* with people new to Rust, a quick explanation: `'a` and `'b` are lifetime parameters that are used to track where a reference (*i.e.* a borrowed pointer to some data) is valid.  In this case, `IndexOffset` borrows a reference to our iterator's data, so it needs to keep track of how long it's allowed to hold that reference for, using `'a`.
+> **Пояснение**: из-за того, что время жизни *вгоняет в ступор* новичков в Rust, 
+по-быстрому объясню: `'a` и `'b` - это параметры времени жизни, которые 
+используются для слежения за ссылками (*т.е.* захваченными указателями на 
+какие-то данные). В этом случае, `IndexOffset` захватывает ссылку на наши данные 
+итератора, поэтому нам надо следить, как долго ей можно удерживать их в себе, и 
+для этого используется `'a`.
 >
-> `'b` is used because the `Index::index` function (which is how subscript syntax is actually implemented) is *also* parameterised on a lifetime, on account of returning a borrowed reference.  `'a` and `'b` are not necessarily the same thing in all cases.  The borrow checker will make sure that even though we don't explicitly relate `'a` and `'b` to one another, we don't accidentally violate memory safety.
+> `'b` используется, потому что функция `Index::index`  (то, как на самом деле 
+реализуется синтаксис индексации массива) *также* параметризирована временем жизни для 
+обеспечения возврата захваченной ссылки. `'a` и `'b` не обязательно совпадают во 
+всех возможных случаях. Анализатор заимствований должен убедиться, что, даже 
+если мы явно не сопоставим `'a` и `'b` друг с другом, мы на самом деле по 
+неосторожности не нарушим целостность памяти.
 
-This changes the definition of `a` to:
+Меняем определение `a` на:
 
 ```ignore
 let a = IndexOffset { slice: &self.mem, offset: n };
 ```
 
-The only remaining question is what to do about `TODO_shuffle_down_and_append`.  I wasn't able to find a method in the standard library with exactly the semantics I wanted, but it isn't hard to do by hand.
+Единственный оставшийся вопрос - что насчет `TODO_shuffle_down_and_append`? Я не
+смог найти метод в стандартной библиотеке, совпадающий по семантике с тем, что
+мне нужно, но его и нетрудно сделать самому.
 
 ```ignore
 {
@@ -439,11 +532,13 @@ The only remaining question is what to do about `TODO_shuffle_down_and_append`. 
 }
 ```
 
-This swaps the new value into the end of the array, swapping the other elements down one space.
+Здесь новое значение перемещается в конец массива, сдвигая остальные элементы на
+один вниз.
 
-> **Aside**: doing it this way means that this code will work for non-copyable types, as well.
+> **Пояснение**: делая так, знайте, что этот код будет работать также и для 
+типов, не поддерживающих копирование.
 
-The working code thus far now looks like this:
+Рабочий код теперь выглядит так:
 
 ```rust
 macro_rules! recurrence {
@@ -523,11 +618,19 @@ fn main() {
 }
 ```
 
-Note that I've changed the order of the declarations of `n` and `a`, as well as wrapped them (along with the recurrence expression) in a block.  The reason for the first should be obvious (`n` needs to be defined first so I can use it for `a`).  The reason for the second is that the borrowed reference `&self.mem` will prevent the swaps later on from happening (you cannot mutate something that is aliased elsewhere).  The block ensures that the `&self.mem` borrow expires before then.
+Заметьте, что я поменял порядок объявления `n` и `a`, а также обернул их (вместе
+с рекуррентным выражением) в блок. Причина для первого довольна тривиальна (`n`
+должна быть определена раньше, чтобы я мог использовать его для `a`). Причина
+второго - это то, что заимствованная ссылка `&self.mem` не дает произойти
+дальнейшим сдвигам (вы не можете изменить то, что связано в другом месте).
+Обертывание в блок гарантирует, что заимствование `&self.mem` заканчивается до
+него.
 
-Incidentally, the only reason the code that does the `mem` swaps is in a block is to narrow the scope in which `std::mem::swap` is available, for the sake of being tidy.
+Между прочим, единственной причиной, по которой код, делающий сдвиг `mem`,
+находится внутри блока, является желание приблизить область видимости, в которой
+доступен `std::mem::swap`, просто ради аккуратности.
 
-If we take this code and run it, we get:
+Если мы выполним этот код, то получим:
 
 ```text
 0
@@ -541,16 +644,17 @@ If we take this code and run it, we get:
 34
 ```
 
-Success!  Now, let's copy & paste this into the macro expansion, and replace the expanded code with an invocation.  This gives us:
+Это успех! Теперь давайте скопируем и вставим код в развертывание макроса, и
+заменим развернутый код на его вызов. Получим:
 
 ```ignore
 macro_rules! recurrence {
     ( a[n]: $sty:ty = $($inits:expr),+ , ... , $recur:expr ) => {
         {
             /*
-                What follows here is *literally* the code from before,
-                cut and pasted into a new position.  No other changes
-                have been made.
+                Идущий дальше код, это, *буквально*, код выше,
+                вырезанный и вставленный на новую позицию. Никаких изменений
+                больше не выполнялось.
             */
 
             use std::ops::Index;
@@ -624,7 +728,9 @@ fn main() {
 }
 ```
 
-Obviously, we aren't *using* the captures yet, but we can change that fairly easily.  However, if we try to compile this, `rustc` aborts, telling us:
+Очевидно, мы еще не *используем* захват в метапеременные, но можем
+добавить его довольно просто. Однако, если мы попытаемся скомпилировать код,
+`rustc` вернет ошибку, говорящую нам:
 
 ```text
 recurrence.rs:69:45: 69:48 error: local ambiguity: multiple parsing options: built-in NTs expr ('inits') or 1 other options.
@@ -632,41 +738,63 @@ recurrence.rs:69     let fib = recurrence![a[n]: u64 = 0, 1, ..., a[n-1] + a[n-2
                                                              ^~~
 ```
 
-Here, we've run into a limitation of `macro_rules`.  The problem is that second comma.  When it sees it during expansion, `macro_rules` can't decide if it's supposed to parse *another* expression for `inits`, or `...`.  Sadly, it isn't quite clever enough to realise that `...` isn't a valid expression, so it gives up.  Theoretically, this *should* work as desired, but currently doesn't.
+Вот тут мы и попались в ограничение `macro_rules`. Проблемой является вторая
+запятая. Когда `macro_rules` видит ее во время развертывания, он не может
+решить, разобрать ему *следующее* выражение как `inits` или как `...`. К
+сожалению, он не такой умный, чтобы понять, что `...` не является правильным
+выражением, и поэтому он сдается. Теоретически, все должно работать, но на самом
+деле нет.
 
-> **Aside**: I *did* fib a little about how our rule would be interpreted by the macro system.  In general, it *should* work as described, but doesn't in this case.  The `macro_rules` machinery, as it stands, has its foibles, and its worthwhile remembering that on occasion, you'll need to contort a little to get it to work.
+> **Пояснение**: *На самом деле* я немного приврал о том, как наше правило было бы 
+интепретировано системой макросов. В общем, оно *должно было бы* работать как описано, 
+но не в этом случае. Устройство `macro_rules`, как оно сейчас есть, имеет свои 
+слабости, и всегда стоит помнить, что в некоторых случаях вам придется исказить код 
+немного, чтобы заставить его работать.
 >
-> In this *particular* case, there are two issues.  First, the macro system doesn't know what does and does not constitute the various grammar elements (*e.g.* an expression); that's the parser's job.  As such, it doesn't know that `...` isn't an expression.  Secondly, it has no way of trying to capture a compound grammar element (like an expression) without 100% committing to that capture.
+> В этом *конкретном* случае две проблемы. Во-первых - система макросов не знает, 
+что составляет некоторые грамматические элементы, а что нет (*например*, 
+выражения); это работа парсера. Поэтому, она не знает, что `...` не является 
+выражением. Во-вторых - она не может попытаться захватить составной грамматический 
+элемент (такой, как выражение), если он на 100% не совпадает.
 >
-> In other words, it can ask the parser to try and parse some input as an expression, but the parser will respond to any problems by aborting.  The only way the macro system can currently deal with this is to just try to forbid situations where this could be a problem.
+> Другими словами, она может попросить парсер попытаться разобрать вход как 
+выражение, а парсер ответит на любую проблему отменой с ошибкой. Единственным 
+способом, как система макроса сможет работать - просто попытаться избежать 
+ситуаций, в которых это может стать проблемой.
 >
-> On the bright side, this is a state of affairs that exactly *no one* is enthusiastic about.  The `macro` keyword has already been reserved for a more rigorously-defined future macro system.  Until then, needs must.
+> К положительному моменту можно отнести то, что *никто* не в восторге от этого.
+  Ключевое слово `macro` уже зарезервировано для будущего более строгого 
+  определения системы макросов. А пока, страдаем.
 
-Thankfully, the fix is relatively simple: we remove the comma from the syntax.  To keep things balanced, we'll remove *both* commas around `...`:
+К счастью, решение очень простое: мы удаляем запятую из синтаксиса. Чтобы
+удержать равновесие, мы удалим  *обе* запятые вокруг `...`:
 
 ```rust
 macro_rules! recurrence {
     ( a[n]: $sty:ty = $($inits:expr),+ ... $recur:expr ) => {
-//                                     ^~~ changed
+//                                     ^~~ изменено
         /* ... */
-#         // Cheat :D
+#         // Чит :D
 #         (vec![0u64, 1, 2, 3, 5, 8, 13, 21, 34]).into_iter()
     };
 }
 
 fn main() {
     let fib = recurrence![a[n]: u64 = 0, 1 ... a[n-1] + a[n-2]];
-//                                         ^~~ changed
+//                                         ^~~ изменено
 
     for e in fib.take(10) { println!("{}", e) }
 }
 ```
 
-Success!  We can now start replacing things in the *expansion* with things we've *captured*.
+Это успех! Теперь можем заменить вещи из *развертывания* на 
+*захваченные метапеременные*.
 
-### Substitution
+### Замена
 
-Substituting something you've captured in a macro is quite simple; you can insert the contents of a capture `$sty:ty` by using `$sty`.  So, let's go through and fix the `u64`s:
+Заменить то, что вы захватили в метапеременную, очень просто; вы заменяете
+содержимое захваченного в `$sty:ty` на `$sty`. Итак, давайте пройдемся и
+исправим все `u64`:
 
 ```rust
 macro_rules! recurrence {
@@ -676,23 +804,23 @@ macro_rules! recurrence {
 
             struct Recurrence {
                 mem: [$sty; 2],
-//                    ^~~~ changed
+//                    ^~~~ изменено
                 pos: usize,
             }
 
             struct IndexOffset<'a> {
                 slice: &'a [$sty; 2],
-//                          ^~~~ changed
+//                          ^~~~ изменено
                 offset: usize,
             }
 
             impl<'a> Index<usize> for IndexOffset<'a> {
                 type Output = $sty;
-//                            ^~~~ changed
+//                            ^~~~ изменено
 
                 #[inline(always)]
                 fn index<'b>(&'b self, index: usize) -> &'b $sty {
-//                                                          ^~~~ changed
+//                                                          ^~~~ изменено
                     use std::num::Wrapping;
 
                     let index = Wrapping(index);
@@ -706,11 +834,11 @@ macro_rules! recurrence {
 
             impl Iterator for Recurrence {
                 type Item = $sty;
-//                          ^~~~ changed
+//                          ^~~~ изменено
 
                 #[inline]
                 fn next(&mut self) -> Option<$sty> {
-//                                           ^~~~ changed
+//                                           ^~~~ изменено
                     /* ... */
 #                     if self.pos < 2 {
 #                         let next_val = self.mem[self.pos];
@@ -750,16 +878,21 @@ fn main() {
 }
 ```
 
-Let's tackle a harder one: how to turn `inits` into both the array literal `[0, 1]` *and* the array type, `[$sty; 2]`.  The first one we can do like so:
+Давайте решим вопрос посложнее: как превратить `inits` в массив литералов 
+`[0,1]` *и* в массив типов `[$sty; 2]`. Для первого мы можем сделать так:
 
 ```ignore
             Recurrence { mem: [$($inits),+], pos: 0 }
-//                             ^~~~~~~~~~~ changed
+//                             ^~~~~~~~~~~ изменено
 ```
 
-This effectively does the opposite of the capture: repeat `inits` one or more times, separating each with a comma.  This expands to the expected sequence of tokens: `0, 1`.
+Это полная противоположность захвату в метапеременные: повтор `inits` один или
+несколько раз, каждый из которых отделяется запятой. Это развернется в ожидаемую
+последовательность токенов: `0, 1`.
 
-Somehow turning `inits` into a literal `2` is a little trickier.  It turns out that there's no direct way to do this, but we *can* do it by using a second macro.  Let's take this one step at a time.
+Почему-то превратить `inits` в литерал `2` немного сложнее. Оказывается, нет
+прямого способа это сделать, но мы *можем* исправить это, написав второй макрос.
+Давайте разберёмся в этом по шагам.
 
 ```rust
 macro_rules! count_exprs {
@@ -769,12 +902,13 @@ macro_rules! count_exprs {
 # fn main() {}
 ```
 
-The obvious case is: given zero expressions, you would expect `count_exprs` to expand to a literal `0`.
+Это очевидный случай: получив ноль выражений, вы ожидаете, что `count_exprs` 
+развернется в литерал `0`.
 
 ```rust
 macro_rules! count_exprs {
     () => (0);
-//  ^~~~~~~~~~ added
+//  ^~~~~~~~~~ добавлено
 }
 # fn main() {
 #     const _0: usize = count_exprs!();
@@ -782,17 +916,27 @@ macro_rules! count_exprs {
 # }
 ```
 
-> **Aside**: You may have noticed I used parentheses here instead of curly braces for the expansion.  `macro_rules` really doesn't care *what* you use, so long as it's one of the "matcher" pairs: `( )`, `{ }` or `[ ]`.  In fact, you can switch out the matchers on the macro itself (*i.e.* the matchers right after the macro name), the matchers around the syntax rule, and the matchers around the corresponding expansion.
+> **Пояснение**: Вы должно быть заметили, что я использую круглые скоби вместо 
+фигурных для развертывания. `macro_rules` все равно, *какие* скобки вы 
+используете, если это любые из пар: `( )`, `{ }` или `[ ]`. На самом деле вы 
+можете использовать любые скобки у самого макроса (*т.е.* скобки сразу после 
+имени макроса), в сопоставлении с образцом в правилах синтаксиса, и в 
+сопоставлении с образцом вокруг соответствующего развёртывания.
 >
-> You can also switch out the matchers used when you *invoke* a macro, but in a more limited fashion: a macro invoked as `{ ... }` or `( ... );` will *always* be parsed as an *item* (*i.e.* like a `struct` or `fn` declaration).  This is important when using macros in a function body; it helps disambiguate between "parse like an expression" and "parse like a statement".
+> Вы можете также использовать любые скобки при *вызове* макроса, но с 
+ограничениями: макрос, вызываемый как  `{ ... }` или `( ... );` будет *всегда* 
+разбираться как *элемент* (*т.e.*, как объявление `struct` или `fn`). Это важно
+ учитывать при использовании макросов внутри тела функций; это помогает 
+ устранить неоднозначность между тем, что делать - "разбирать как выражение" и 
+ "разбирать как утверждение".
 
-What if you have *one* expression?  That should be a literal `1`.
+Что если у вас *одно* выражение? Этому должен соответствовать литерал `1`.
 
 ```rust
 macro_rules! count_exprs {
     () => (0);
     ($e:expr) => (1);
-//  ^~~~~~~~~~~~~~~~~ added
+//  ^~~~~~~~~~~~~~~~~ добавлено
 }
 # fn main() {
 #     const _0: usize = count_exprs!();
@@ -802,14 +946,14 @@ macro_rules! count_exprs {
 # }
 ```
 
-Two?
+Два?
 
 ```rust
 macro_rules! count_exprs {
     () => (0);
     ($e:expr) => (1);
     ($e0:expr, $e1:expr) => (2);
-//  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~ added
+//  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~ добавлено
 }
 # fn main() {
 #     const _0: usize = count_exprs!();
@@ -821,14 +965,15 @@ macro_rules! count_exprs {
 # }
 ```
 
-We can "simplify" this a little by re-expressing the case of two expressions recursively.
+Мы можем "упростить" это, по-другому выразив случай с двумя выражениями через
+рекурсию.
 
 ```rust
 macro_rules! count_exprs {
     () => (0);
     ($e:expr) => (1);
     ($e0:expr, $e1:expr) => (1 + count_exprs!($e1));
-//                           ^~~~~~~~~~~~~~~~~~~~~ changed
+//                           ^~~~~~~~~~~~~~~~~~~~~ изменено
 }
 # fn main() {
 #     const _0: usize = count_exprs!();
@@ -840,7 +985,8 @@ macro_rules! count_exprs {
 # }
 ```
 
-This is fine since Rust can fold `1 + 1` into a constant value.  What if we have three expressions?
+Это работает, Rust сможет преобразовать `1 + 1` в константное значение. Что если
+у нас три выражения?
 
 ```rust
 macro_rules! count_exprs {
@@ -848,7 +994,7 @@ macro_rules! count_exprs {
     ($e:expr) => (1);
     ($e0:expr, $e1:expr) => (1 + count_exprs!($e1));
     ($e0:expr, $e1:expr, $e2:expr) => (1 + count_exprs!($e1, $e2));
-//  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ added
+//  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ добавлено
 }
 # fn main() {
 #     const _0: usize = count_exprs!();
@@ -862,16 +1008,23 @@ macro_rules! count_exprs {
 # }
 ```
 
-> **Aside**: You might be wondering if we could reverse the order of these rules.  In this particular case, *yes*, but the macro system can sometimes be picky about what it is and is not willing to recover from.  If you ever find yourself with a multi-rule macro that you *swear* should work, but gives you errors about unexpected tokens, try changing the order of the rules.
+> **Пояснение**: Вам должно быть интересно, можем ли мы поменять порядок 
+следования правил. В данном конкретном случае, *да*, но система макросов может 
+быть иногда требовательна к этому и не пожелает работать. Если вы напишете 
+макрос с несколькими правилами, который, вы готовы поклясться, должен работать, но 
+выдает ошибки на неожиданных токенах, попробуйте поменять порядок следования 
+правил.
 
-Hopefully, you can see the pattern here.  We can always reduce the list of expressions by matching one expression, followed by zero or more expressions, expanding that into 1 + a count.
+Мы надеемся, последовательность понятна. Мы всегда можем уменьшить список 
+выражений, выполняя совпадение с одним выражением, за которым следуют ноль и 
+более выражений, разворачивая это в 1 + оставшееся количество выражений.
 
 ```rust
 macro_rules! count_exprs {
     () => (0);
     ($head:expr) => (1);
     ($head:expr, $($tail:expr),*) => (1 + count_exprs!($($tail),*));
-//  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ changed
+//  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ изменено
 }
 # fn main() {
 #     const _0: usize = count_exprs!();
@@ -885,12 +1038,15 @@ macro_rules! count_exprs {
 # }
 ```
 
-> **<abbr title="Just for this example">JFTE</abbr>**: this is not the *only*, or even the *best* way of counting things.  You may wish to peruse the [Counting](blk-counting.html) section later.
+> **<abbr title="Только в этом примере">ТВЭП</abbr>**: это не *единственный*, и 
+даже не *лучший* способ выполнить подсчет. Лучше использовать 
+[Подсчет](blk-counting.html) из следующих глав.
 
-With this, we can now modify `recurrence` to determine the necessary size of `mem`.
+Наконец, теперь мы можем изменить `recurrence` так, чтобы определить необходимый
+размер `mem`.
 
 ```rust
-// added:
+// добавлено:
 macro_rules! count_exprs {
     () => (0);
     ($head:expr) => (1);
@@ -903,17 +1059,17 @@ macro_rules! recurrence {
             use std::ops::Index;
 
             const MEM_SIZE: usize = count_exprs!($($inits),+);
-//          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ added
+//          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ добавлено
 
             struct Recurrence {
                 mem: [$sty; MEM_SIZE],
-//                          ^~~~~~~~ changed
+//                          ^~~~~~~~ изменено
                 pos: usize,
             }
 
             struct IndexOffset<'a> {
                 slice: &'a [$sty; MEM_SIZE],
-//                                ^~~~~~~~ changed
+//                                ^~~~~~~~ изменено
                 offset: usize,
             }
 
@@ -927,7 +1083,7 @@ macro_rules! recurrence {
                     let index = Wrapping(index);
                     let offset = Wrapping(self.offset);
                     let window = Wrapping(MEM_SIZE);
-//                                        ^~~~~~~~ changed
+//                                        ^~~~~~~~ изменено
 
                     let real_index = index - offset + window;
                     &self.slice[real_index.0]
@@ -940,7 +1096,7 @@ macro_rules! recurrence {
                 #[inline]
                 fn next(&mut self) -> Option<$sty> {
                     if self.pos < MEM_SIZE {
-//                                ^~~~~~~~ changed
+//                                ^~~~~~~~ изменено
                         let next_val = self.mem[self.pos];
                         self.pos += 1;
                         Some(next_val)
@@ -956,7 +1112,7 @@ macro_rules! recurrence {
 
                             let mut swap_tmp = next_val;
                             for i in (0..MEM_SIZE).rev() {
-//                                       ^~~~~~~~ changed
+//                                       ^~~~~~~~ изменено
                                 swap(&mut swap_tmp, &mut self.mem[i]);
                             }
                         }
@@ -980,7 +1136,7 @@ macro_rules! recurrence {
 # }
 ```
 
-With that done, we can now substitute the last thing: the `recur` expression.
+Сделав это, мы можем заменить последнюю вещь: выражение `recur`.
 
 ```ignore
 # macro_rules! count_exprs {
@@ -1019,7 +1175,7 @@ With that done, we can now substitute the last thing: the `recur` expression.
                             let n = self.pos;
                             let a = IndexOffset { slice: &self.mem, offset: n };
                             $recur
-//                          ^~~~~~ changed
+//                          ^~~~~~ изменено
                         };
                         {
                             use std::mem::swap;
@@ -1044,7 +1200,7 @@ With that done, we can now substitute the last thing: the `recur` expression.
 # }
 ```
 
-And, when we compile our finished macro...
+И, когда мы скомпилируем наш законченный макрос...
 
 ```text
 recurrence.rs:77:48: 77:49 error: unresolved name `a`
@@ -1069,13 +1225,17 @@ recurrence.rs:7:1: 74:2 note: in expansion of recurrence!
 recurrence.rs:77:15: 77:64 note: expansion site
 ```
 
-... wait, what?  That can't be right... let's check what the macro is expanding to.
+... постойте, что? Так быть не должно... проверим, во что разворачивается макрос.
 
 ```shell
 $ rustc -Z unstable-options --pretty expanded recurrence.rs
 ```
 
-The `--pretty expanded` argument tells `rustc` to perform macro expansion, then turn the resulting AST back into source code.  Because this option isn't considered stable yet, we also need `-Z unstable-options`.  The output (after cleaning up some formatting) is shown below; in particular, note the place in the code where `$recur` was substituted:
+Аргумент `--pretty expanded` говорит `rustc` выполнить развертывание макроса, и
+затем вернуть получившееся AST обратно в исходный код. Эта опция не считается
+стабильной, поэтому надо указать `-Z unstable-options`. Вывод (после
+форматирования) показан ниже; в частности, обратите внимание на то место в коде,
+где `$recur` был заменен:
 
 ```ignore
 #![feature(no_std)]
@@ -1172,13 +1332,19 @@ fn main() {
 }
 ```
 
-But that looks fine!  If we add a few missing `#![feature(...)]` attributes and feed it to a nightly build of `rustc`, it even compiles!  ... *what?!*
+Но все вроде в порядке! Если мы добавим несколько нехватающих атрибутов
+`#![feature(...)]` и запустим под ночной сборкой `rustc`, он даже компилируется!
+... *как?!*
 
-> **Aside**: You can't compile the above with a non-nightly build of `rustc`.  This is because the expansion of the `println!` macro depends on internal compiler details which are *not* publicly stabilised.
+> **Пояснение**: У вас не получится скомпилировать это на не-ночной сборке 
+`rustc`. Происходит это из-за того, что развёртывание макроса `println!` 
+зависит от внутренних деталей компилятора, которые еще публично *не* стабилизированы.
 
-### Being Hygienic
+### Соблюдение гигиены
 
-The issue here is that identifiers in Rust macros are *hygienic*.  That is, identifiers from two different contexts *cannot* collide.  To show the difference, let's take a simpler example.
+Проблема здесь в том, что идентификаторы в макросах Rust обладают *гигиеной*. 
+Поэтому идентификаторы из двух разных контекстов *не могут* сталкиваться. 
+Чтобы объяснить разницу, возьмем простой пример.
 
 ```rust
 # /*
@@ -1196,27 +1362,42 @@ let four = using_a!(a / 10);
 # fn main() {}
 ```
 
-This macro simply takes an expression, then wraps it in a block with a variable `a` defined.  We then use this as a round-about way of computing `4`.  There are actually *two* syntax contexts involved in this example, but they're invisible.  So, to help with this, let's give each context a different colour.  Let's start with the unexpanded code, where there is only a single context:
+Макрос просто принимает выражение, оборачивает его в блок и определяет
+переменную `a` внутри него. Мы используем его как окольный путь вычисления `4`.
+На самом деле здесь *два* контекста синтаксиса, но они невидимы. Поэтому, для
+помощи вам, дадим каждому контексту свой цвет. Начнем с неразвернутого кода, в
+котором только один контекст:
 
 <pre class="rust rust-example-rendered"><span class="synctx-0"><span class="macro">macro_rules</span><span class="macro">!</span> <span class="ident">using_a</span> {&#xa;    (<span class="macro-nonterminal">$</span><span class="macro-nonterminal">e</span>:<span class="ident">expr</span>) <span class="op">=&gt;</span> {&#xa;        {&#xa;            <span class="kw">let</span> <span class="ident">a</span> <span class="op">=</span> <span class="number">42</span>;&#xa;            <span class="macro-nonterminal">$</span><span class="macro-nonterminal">e</span>&#xa;        }&#xa;    }&#xa;}&#xa;&#xa;<span class="kw">let</span> <span class="ident">four</span> <span class="op">=</span> <span class="macro">using_a</span><span class="macro">!</span>(<span class="ident">a</span> <span class="op">/</span> <span class="number">10</span>);</span></pre>
 
-Now, let's expand the invocation.
+Теперь развернем вызов.
 
 <pre class="rust rust-example-rendered"><span class="synctx-0"><span class="kw">let</span> <span class="ident">four</span> <span class="op">=</span> </span><span class="synctx-1">{&#xa;    <span class="kw">let</span> <span class="ident">a</span> <span class="op">=</span> <span class="number">42</span>;&#xa;    </span><span class="synctx-0"><span class="ident">a</span> <span class="op">/</span> <span class="number">10</span></span><span class="synctx-1">&#xa;}</span><span class="synctx-0">;</span></pre>
 
-As you can see, the <code><span class="synctx-1">a</span></code> that's defined by the macro is in a different context to the <code><span class="synctx-0">a</span></code> we provided in our invocation.  As such, the compiler treats them as completely different identifiers, *even though they have the same lexical appearance*.
+Как видно, <code><span class="synctx-1">a</span></code>, определяемая макросом,
+находится в другом контексте по отношению к <code><span
+class="synctx-0">a</span></code>, которую мы подсунули в наш вызов. Поэтому
+компилятор считает их абсолютно разными идентификаторами, *не принимая во
+внимание, что у них одинаковое лексическое представление*.
 
-This is something to be *really* careful of when working on macros: macros can produce ASTs which will not compile, but which *will* compile if written out by hand, or dumped using `--pretty expanded`.
+Это то, с чем надо быть *особенно* осторожным при работе с макросами: макросы
+могут сформировать AST, которые не будут компилироваться, но, которые, если
+написать от руки или с использованием `--pretty expanded`, все же
+*компилируются*.
 
-The solution to this is to capture the identifier *with the appropriate syntax context*.  To do that, we need to again adjust our macro syntax.  To continue with our simpler example:
+Решением здесь является захватить идентификатор *с подходящим контекстом
+синтаксиса*. Чтобы сделать это, надо снова улучшить синтаксис нашего макроса.
+Продолжая наш простой пример:
 
 <pre class="rust rust-example-rendered"><span class="synctx-0"><span class="macro">macro_rules</span><span class="macro">!</span> <span class="ident">using_a</span> {&#xa;    (<span class="macro-nonterminal">$</span><span class="macro-nonterminal">a</span>:<span class="ident">ident</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">e</span>:<span class="ident">expr</span>) <span class="op">=&gt;</span> {&#xa;        {&#xa;            <span class="kw">let</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">a</span> <span class="op">=</span> <span class="number">42</span>;&#xa;            <span class="macro-nonterminal">$</span><span class="macro-nonterminal">e</span>&#xa;        }&#xa;    }&#xa;}&#xa;&#xa;<span class="kw">let</span> <span class="ident">four</span> <span class="op">=</span> <span class="macro">using_a</span><span class="macro">!</span>(<span class="ident">a</span>, <span class="ident">a</span> <span class="op">/</span> <span class="number">10</span>);</span></pre>
 
-This now expands to:
+Это развернется в:
 
 <pre class="rust rust-example-rendered"><span class="synctx-0"><span class="kw">let</span> <span class="ident">four</span> <span class="op">=</span> </span><span class="synctx-1">{&#xa;    <span class="kw">let</span> </span><span class="synctx-0"><span class="ident">a</span></span><span class="synctx-1"> <span class="op">=</span> <span class="number">42</span>;&#xa;    </span><span class="synctx-0"><span class="ident">a</span> <span class="op">/</span> <span class="number">10</span></span><span class="synctx-1">&#xa;}</span><span class="synctx-0">;</span></pre>
 
-Now, the contexts match, and the code will compile.  We can make this adjustment to our `recurrence!` macro by explicitly capturing `a` and `n`.  After making the necessary changes, we have:
+Сейчас контексты совпадают, и код компилируется. Можем аналогичным образом
+изменить наш `recurrence!`, явно захватывая `a` и `n`.  После изменений
+получим:
 
 ```rust
 macro_rules! count_exprs {
@@ -1227,7 +1408,7 @@ macro_rules! count_exprs {
 
 macro_rules! recurrence {
     ( $seq:ident [ $ind:ident ]: $sty:ty = $($inits:expr),+ ... $recur:expr ) => {
-//    ^~~~~~~~~~   ^~~~~~~~~~ changed
+//    ^~~~~~~~~~   ^~~~~~~~~~ изменено
         {
             use std::ops::Index;
 
@@ -1271,9 +1452,9 @@ macro_rules! recurrence {
                     } else {
                         let next_val = {
                             let $ind = self.pos;
-//                              ^~~~ changed
+//                              ^~~~ изменено
                             let $seq = IndexOffset { slice: &self.mem, offset: $ind };
-//                              ^~~~ changed
+//                              ^~~~ изменено
                             $recur
                         };
 
@@ -1304,7 +1485,7 @@ fn main() {
 }
 ```
 
-And it compiles!  Now, let's try with a different sequence.
+И он компилируется! Теперь попробуем другую последовательность.
 
 ```rust
 # macro_rules! count_exprs {
@@ -1389,7 +1570,7 @@ for e in recurrence!(f[i]: f64 = 1.0 ... f[i-1] * i as f64).take(10) {
 # }
 ```
 
-Which gives us:
+Получим:
 
 ```text
 1
@@ -1404,4 +1585,4 @@ Which gives us:
 362880
 ```
 
-Success!
+Это победа!

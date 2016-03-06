@@ -1,19 +1,38 @@
-% Macros in the AST
+% Макросы в AST
 
-As previously mentioned, macro processing in Rust happens *after* the construction of the AST.  As such, the syntax used to invoke a macro *must* be a proper part of the language's syntax.  In fact, there are several "syntax extension" forms which are part of Rust's syntax.  Specifically, the following forms (by way of examples):
+Как раньше отмечалось, обработка макросов в Rust происходит *после* построения
+AST. Поэтому синтаксис, используемый для вызова макроса, *должен быть*
+собственной частью синтаксиса языка. На самом деле есть несколько форм
+"расширений синтаксиса", которые являются частью синтаксиса Rust. Конкретно,
+следующие формы (с примерами):
 
-* `# [ $arg ]`; *e.g.* `#[derive(Clone)]`, `#[no_mangle]`, …
-* `# ! [ $arg ]`; *e.g.* `#![allow(dead_code)]`, `#![crate_name="blang"]`, …
-* `$name ! $arg`; *e.g.* `println!("Hi!")`, `concat!("a", "b")`, …
-* `$name ! $arg0 $arg1`; *e.g.* `macro_rules! dummy { () => {}; }`.
+* `# [ $arg ]`; *например*, `#[derive(Clone)]`, `#[no_mangle]`, …
+* `# ! [ $arg ]`; *например*, `#![allow(dead_code)]`, `#![crate_name="blang"]`, …
+* `$name ! $arg`; *например*, `println!("Hi!")`, `concat!("a", "b")`, …
+* `$name ! $arg0 $arg1`; *например*, `macro_rules! dummy { () => {}; }`.
 
-The first two are "attributes", and are shared between both language-specific constructs (such as `#[repr(C)]` which is used to request a C-compatible ABI for user-defined types) and syntax extensions (such as `#[derive(Clone)]`).  There is currently no way to define a macro that uses these forms.
+Первые две -  "атрибуты" и относятся как к специальным конструкциям языка
+(таким как `#[repr(C)]`, которые используются при запросе C-совместимого ABI для
+пользовательского типа), так и к расширениям синтаксиса (таким как
+`#[derive(Clone)]`). В данный момент нет возможности определить макрос, который
+бы использовал эти формы.
 
-The third is the one of interest to us: it is the form available for use with macros.  Note that this form is not *limited* to macros: it is a generic syntax extension form.  For example, whilst `format!` is a macro, `format_args!` (which is used to *implement* `format!`) is *not*.
+Именно третья форма представляет для нас интерес: это форма, доступная для
+использования макросов. Помните, что ее использование *не ограничено* только макросами:
+это общая форма расширения синтаксиса.  Например, если `format!` - это
+макрос, `format_args!` (который используется для *реализации* `format!`) -
+*нет*.
 
-The fourth is essentially a variation which is *not* available to macros.  In fact, the only case where this form is used *at all* is with `macro_rules!` which, again we will come back to.
+Четвертая форма - это по существу вариация, которая *недоступна* для макросов.
+На самом деле *единственным* местом, где она используется, является
+`macro_rules!`, к которому мы еще вернемся.
 
-Disregarding all but the third form (`$name ! $arg`), the question becomes: how does the Rust parser know what `$arg` looks like for every possible syntax extension?  The answer is that it doesn't *have to*.  Instead, the argument of a syntax extension invocation is a *single* token tree.  More specifically, it is a single, *non-leaf* token tree; `(...)`, `[...]`, or `{...}`.  With that knowledge, it should become apparent how the parser can understand all of the following invocation forms:
+Если отбросить всё, кроме третей формы (`$name ! $arg`), то возникает вопрос: откуда парсер
+Rust знает, как выглядит `$arg` для всех возможных расширений синтаксиса? Ответ
+заключается в том, что ему это и *не нужно*. Вместо этого аргументом вызова
+расширения синтаксиса является *одиночное* дерево токенов. Говоря более
+конкретно, это одиночное *безлистное* дерево токенов: `(...)`, `[...]` или
+`{...}`. Поняв это, станет ясно, как парсер может разобрать все эти формы вызова:
 
 ```ignore
 bitflags! {
@@ -45,7 +64,9 @@ fn main() {
 }
 ```
 
-Although the above invocations may *look* like they contain various kinds of Rust code, the parser simply sees a collection of meaningless token trees.  To make this clearer, we can replace all these syntactic "black boxes" with ⬚, leaving us with:
+Хотя эти вызовы *выглядят* так, как-будто содержат разный код Rust, парсер
+просто видит коллекцию бессмысленных деревьев токенов. Для ясности мы можем
+заменить все эти синтаксические "черные ящики" на ⬚ и получим:
 
 ```text
 bitflags! ⬚
@@ -58,34 +79,51 @@ fn main() {
 }
 ```
 
-Just to reiterate: the parser does not assume *anything* about ⬚; it remembers the tokens it contains, but doesn't try to *understand* them.
+Повторяем: парсер *ничего* не делает с ⬚; он запоминает токены, которые они
+содержат, но не пытается их *разобрать*.
 
-The important takeaways are:
+Важные выводы из этого следующие:
 
-* There are multiple kinds of syntax extension in Rust.  We will *only* be talking about macros defined by the `macro_rules!` construct.
-* Just because you see something of the form `$name! $arg`, doesn't mean it's actually a macro; it might be another kind of syntax extension.
-* The input to every macro is a single non-leaf token tree.
-* Macros (really, syntax extensions in general) are parsed as *part* of the abstract syntax tree.
+* Есть несколько расширений синтаксиса в Rust. Мы будем говорить *только* о
+макросах, определяемых конструкцией `macro_rules!`.
 
-> **Aside**: due to the first point, some of what will be said below (including the next paragraph) will apply to syntax extensions *in general*.[^writer-is-lazy]
+* Только из-за того, что вы видите что-то в форме `$name! $arg`, не означает,
+что это на самом деле макрос; это может быть другой тип расширения синтаксиса.
 
-[^writer-is-lazy]: This is rather convenient as "macro" is much quicker and easier to type than "syntax extension".
+* На вход в каждый макрос подается одиночное безлистное дерево токенов.
 
-The last point is the most important, as it has *significant* implications.  Because macros are parsed into the AST, they can **only** appear in positions where they are explicitly supported.  Specifically macros can appear in place of the following:
+* Макросы (на самом деле расширения синтаксиса) разбираются как
+часть абстрактного синтаксического дерева (AST).
 
-* Patterns
-* Statements
-* Expressions
-* Items
-* `impl` Items
 
-Some things *not* on this list:
+> **Пояснение**: Из-за первого вывода некоторое описываемое ниже (включая
+ следующий параграф) будет применяться к расширениям синтаксиса *в общем*. 
+ [^писатель-ленив]
 
-* Identifiers
-* Match arms
-* Struct fields
-* Types[^type-macros]
+[^писатель-ленив]: Гораздо удобнее и быстрее писать "макрос", чем "расширение
+синтаксиса".
 
-[^type-macros]: Type macros are available in unstable Rust with `#![feature(type_macros)]`; see [Issue #27336](https://github.com/rust-lang/rust/issues/27336).
+Последний вывод особенно важен и имеет *значительные* последствия. Из-за того,
+что макросы разбираются в AST, они могут появляться **только** на том месте, в
+котором они явно поддерживаются. Конкретно, макросы могут появляться в следующих
+местах:
 
-There is absolutely, definitely *no way* to use macros in any position *not* on the first list.
+* Паттерны
+* Утверждения
+* Выражения
+* Элементы
+* Элементы `impl` 
+
+Некоторые вещи, *не* указанные в списке:
+
+* Идентификаторы
+* Варианты при поиске совпадения с образцом
+* Поля структур
+* Типы [^макросы-типы]
+
+[^макросы-типы]: Макросы типа доступны в нестабильном Rust с
+`#![feature(type_macros)]`; см. [Issue #27336](https://github.com/rust-
+[^lang/rust/issues/27336).
+
+Нет совсем-совсем *никакой* возможности использовать макросы в том
+месте, которое *не* указано в первом списке.

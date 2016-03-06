@@ -1,3 +1,4 @@
-% Minutiae
+% Мелочи
 
-This section goes through some of the finer details of the macro system.  At a minimum, you should try to be at least *aware* of these details and issues.
+Эта секция описывает некоторые мелкие детали системы макросов. Как минимум, вам
+стоит хотя бы узнать о существовании этих проблем.

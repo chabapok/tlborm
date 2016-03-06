@@ -1,12 +1,20 @@
-% Provisional
+% Предварительно
 
-This section is for patterns or techniques which are of dubious value, or which might be *too* niche for inclusion.
+Этот раздел предназначен для паттернов или техник, которые имеют сомнительную
+ценность, или которые могут иметь *слишком узкую* область применения для включения 
+их в основной
+список.
 
-## Abacus Counters
+## Счеты
 
-> **Provisional**: needs a more compelling example.  Although an important part of the `Ook!` macro, matching nested groups that are *not* denoted by Rust groups is sufficiently unusual that it may not merit inclusion.
+> **Предварительно**: нужны более привлекательные примеры. Несмотря на то что
+важная часть макроса `Ook!`, относящаяся к поиску совпадений с вложенными
+группами, *не* входящим в группы Rust, очень необычна, она может не
+заслуживать включения в этот раздел.
 
-> **Note**: this section assumes understanding of [push-down accumulation](#push-down-accumulation) and [incremental TT munchers](#incremental-tt-munchers).
+> **Заметьте**: в этом разделе подразумевается понимание [спихиваемых 
+накоплений](#push-down-accumulation) и [последовательных потребителей TT
+(#incremental-tt-munchers).
 
 ```rust
 macro_rules! abacus {
@@ -23,7 +31,7 @@ macro_rules! abacus {
         abacus!(($($moves)*) -> (+ $($count)*))
     };
 
-    // Check if the final result is zero.
+    // Проверка получившегося результата на ноль.
     (() -> ()) => { true };
     (() -> ($($count:tt)+)) => { false };
 }
@@ -34,50 +42,64 @@ fn main() {
 }
 ```
 
-This technique can be used in cases where you need to keep track of a varying counter that starts at or near zero, and must support the following operations:
+Эта техника может использоваться в тех случаях, когда вам нужно отслеживать
+изменения счетчика, начинающегося с чего-то близкого к нулю, и нужно
+поддерживать следующие операции:
 
-* Increment by one.
-* Decrement by one.
-* Compare to zero (or any other fixed, finite value).
+* Увеличение на единицу.
+* Уменьшение на единицу.
+* Сравнение с нулем (или другим фиксированным, конечным числом).
 
-A value of *n* is represented by *n* instances of a specific token stored in a group.  Modifications are done using recursion and [push-down accumulation](#push-down-accumulation).  Assuming the token used is `x`, the operations above are implemented as follows:
+Значение *n* обозначает *n* экземпляров конкретного токена, входящего в группу.
+Изменение выполняется рекурсией и [спихиваемыми накоплениями](#push-down-accumulation).
+Предполагая, что используемый токен -`x`, операции выше реализуются по-следующему:
 
-* Increment by one: match `($($count:tt)*)`, substitute `(x $($count)*)`.
-* Decrement by one: match `(x $($count:tt)*)`, substitute `($($count)*)`.
-* Compare to zero: match `()`.
-* Compare to one: match `(x)`.
-* Compare to two: match `(x x)`.
-* *(and so on...)*
+* Увеличение на единицу: совпадение с `($($count:tt)*)` заменяется на `(x $($count)*)`.
+* Уменьшение на единицу: совпадение с `(x $($count:tt)*)` заменяется на `($($count)*)`.
+* Сравнение с нулем: совпадение с `()`.
+* Сравнение с единицей: совпадение с `(x)`.
+* Сравнение с двойкой: совпадение с `(x x)`.
+* *(и так далее...)*
 
-In this way, operations on the counter are like flicking tokens back and forth like an abacus.[^abacus]
+Таким образом операции со счетчиком похожи на щелканье токенов туда и обратно,
+как на счётах. [^abacus]
 
-[^abacus]:
-    This desperately thin reasoning conceals the *real* reason for this name: to avoid having *yet another* thing with "token" in the name.  Talk to your writer about avoiding [semantic satiation](https://en.wikipedia.org/wiki/Semantic_satiation) today!
+[^abacus]: Это крайне тонкое сравнение на самом деле скрывает *настоящую* причину
+такого названия: избежать *еще одной* штуки со словом "токен" в названии.
+Мы пытаемся избежать явления [семантического насыщения](https://en.wikipedia.org/wiki/Semantic_satiation)!
 
-    In fairness, it could *also* have been called ["unary counting"](https://en.wikipedia.org/wiki/Unary_numeral_system).
+По правде говоря, эти операции *также* можно было назвать ["унарный подсчет"](https://en.wikipedia.org/wiki/Unary_numeral_system).
 
-In cases where you want to represent negative values, *-n* can be represented as *n* instances of a *different* token.  In the example given above, *+n* is stored as *n* `+` tokens, and *-m* is stored as *m* `-` tokens.
+Если вам нужны отрицательные значения, то *-n* можно заменить на *n* экземпляров
+*другого* токена.  В примере выше, *+n* представлено *n* `+` токенами, а *-m* -
+*m* `-` токенами.
 
-In this case, the operations become slightly more complicated; increment and decrement effectively reverse their usual meanings when the counter is negative.  To whit given `+` and `-` for the positive and negative tokens respectively, the operations change to:
+В данном случае операции немного усложняются; увеличение и уменьшение эффективно
+меняют свое значение на противоположное, если счетчик отрицательный. Считая,
+что `+` и `-` представляют положительный и отрицательный токены соответственно,
+операции меняются следующим образом:
 
-* Increment by one:
-  * match `()`, substitute `(+)`.
-  * match `(- $($count:tt)*)`, substitute `($($count)*)`.
-  * match `($($count:tt)+)`, substitute `(+ $($count)+)`.
-* Decrement by one:
-  * match `()`, substitute `(-)`.
-  * match `(+ $($count:tt)*)`, substitute `($($count)*)`.
-  * match `($($count:tt)+)`, substitute `(- $($count)+)`.
-* Compare to 0: match `()`.
-* Compare to +1: match `(+)`.
-* Compare to -1: match `(-)`.
-* Compare to +2: match `(++)`.
-* Compare to -2: match `(--)`.
-* *(and so on...)*
+* Увеличение на единицу:
+  * совпадение с `()`, заменяется на `(+)`.
+  * совпадение с `(- $($count:tt)*)`, заменяется на `($($count)*)`.
+  * совпадение с `($($count:tt)+)`, заменяется на `(+ $($count)+)`.
+* Уменьшение на единицу:
+  * совпадение с `()`, заменяется на `(-)`.
+  * совпадение с `(+ $($count:tt)*)`, заменяется на `($($count)*)`.
+  * совпадение с `($($count:tt)+)`, заменяется на `(- $($count)+)`.
+* Сравнение с 0: совпадение с `()`.
+* Сравнение с +1: совпадение с `(+)`.
+* Сравнение с -1: совпадение с `(-)`.
+* Сравнение с +2: совпадение с `(++)`.
+* Сравнение с -2: совпадение с `(--)`.
+* *(и так далее...)*
 
-Note that the example at the top combines some of the rules together (for example, it combines increment on `()` and `($($count:tt)+)` into an increment on `($($count:tt)*)`).
+Заметьте, что пример выше объединяет некоторые из этих правил вместе (например,
+он объединяет инкремент `()` и `($($count:tt)+)` в инкремент `($($count:tt)*)`).
 
-If you want to extract the actual *value* of the counter, this can be done using a regular [counter macro](../blk/README.html#counting).  For the example above, the terminal rules can be replaced with the following:
+Если вы хотите достать текущее *значение* счетчика, можно использовать обычный
+[подсчет](../blk/README.html#counting). Для примера выше терминальные правила
+можно заменить следующими:
 
 ```ignore
 macro_rules! abacus {
@@ -98,7 +120,13 @@ macro_rules! replace_expr {
 }
 ```
 
-> **<abbr title="Just for this example">JFTE</abbr>**: strictly speaking, the above formulation of `abacus!` is needlessly complex.  It can be implemented much more efficiently using repetition, provided you *do not* need to match against the counter's value in a macro:
+> **<abbr title="Только для этого примера">ТДЭП</abbr>**: грубо говоря,
+приведенная версия `abacus!` невообразимо сложна. Ее можно заменить на
+гораздо более эффективную, использующую повторения, только в том случае,
+если вам *не* надо нигде сопоставлять паттерн со значением счетчика в
+макросе:
+
+
 >
 > ```ignore
 > macro_rules! abacus {
