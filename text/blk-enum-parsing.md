@@ -77,16 +77,15 @@ macro_rules! parse_unitary_variants {
 # }
 ```
 
-Этот макрос показывает, как вы можете использовать [последовательный потребитель
-TT] и [спихиваемые накопления] для разбора вариантов `enum` , содержащего только
+Этот макрос показывает, как вы можете использовать [incremental-tt-munchers] и [push-down-accumulation] для разбора вариантов `enum` , содержащего только
 унитарные варианты (*т.e.* не имеющие полезной нагрузки (payload)).  После
-завершения `parse_unitary_variants!` вызывает [обратный вызов] со списком
+завершения `parse_unitary_variants!` вызывает [callbacks] со списком
 вариантов (плюс присутствует поддержка других произвольных аргументов).
 
 Его можно изменить так, что можно было бы разбирать поля `struct`, вычислять
 дополнительные значения для вариантов `enum` или даже выносить имена *всех*
 вариантов в произвольный `enum`.
 
-[последовательный потребитель TT]: pat-incremental-tt-munchers.html
-[спихиваемые накопления]: pat-push-down-accumulation.html
-[обратный вызов]: pat-callbacks.html
+[incremental-tt-munchers]: pat-incremental-tt-munchers.html
+[push-down-accumulation]: pat-push-down-accumulation.html
+[callbacks]: pat-callbacks.html
