@@ -21,7 +21,7 @@ macro_rules! as_stmt { ($s:stmt) => {$s} }
 # }
 ```
 
-Эти приведения часто используются со [спихиваемыми накоплениями] для
+Эти приведения часто используются со [push-down-accumulation] для
 того, чтобы парсер обработал последнее выражение `tt` как особый вид
 грамматической конструкции.
 
@@ -30,6 +30,6 @@ macro_rules! as_stmt { ($s:stmt) => {$s} }
 не получится создать макрос `as_ty!`, из-за того что мы не можем написать
 макрос, который появится на позиции типа [^issue-27245], .
 
-[спихиваемыми накоплениями]: pat-push-down-accumulation.html
+[push-down-accumulation]: pat-push-down-accumulation.html
 
 [^issue-27245]: Смотри [Issue #27245](https://github.com/rust-lang/rust/issues/27245).
