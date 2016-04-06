@@ -435,9 +435,9 @@ fn main() {
 Hello World!
 ```
 
-Этим мы показали ужасающую правду, что `macro_rules!` является тьюринг-полным!
+Так мы показали ужасающую правду - `macro_rules!` является тьюринг-полным!
 
-### В дополнении
+### В дополнение
 
 Представленный выше код основан на макро-реализации изоморфного языка "Hodor!".
 Manish Goregaokar затем [реализовал интерпретатор Brainfuck, используя макрос Hodor!](https://www.reddit.com/r/rust/comments/39wvrm/hodor_esolang_as_a_rust_macro/cs76rqk?context=10000). 
